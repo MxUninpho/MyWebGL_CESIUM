@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Use correct character set. -->
+  <meta charset="utf-8">
+  <!-- Tell IE to use the latest, best version. -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!-- Make the application on mobile take up the full browser screen and disable user scaling. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+  <title>BIM+GIS</title>
+  <script src="../Build/Cesium/Cesium.js"></script>
+  <script src="BMCore/NavigationWidget.js"></script>
+  <style>
+    @import url(../Build/Cesium/Widgets/widgets.css);
+    html, body, #cesiumContainer {
+      width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+<div >
+  <button onclick="SetHomeView()">设置Home视图范围</button>
+  <button onclick="ADD3DTile()">添加3DTile</button>
+  <button onclick="PullingHeight()">调整3DTile高度</button>
+  <button onclick="Remove3DTile()">移除3DTile</button>
+  <button onclick="Hide3DTile()">隐藏3DTile</button>
+  <button onclick="Show3DTile()">显示3DTile</button>
+  <button onclick="Set3DTileNodeColor()">设置3DTile节点颜色</button>
+  <button onclick="Reset3DTileNodeColor()">重置3DTile节点颜色</button>
+  <button onclick="Show3DTileNode()">显示3DTile节点</button>
+  <button onclick="Hide3DTileNode()">隐藏3DTile节点</button>
+  <button onclick = "SetScreenSpaceErrorr()">设置3DTile屏幕误差</button>
+</div>
+<div >
+  <button onclick="FlyToRectangle()">缩放至矩形</button>
+  <button onclick="FlyToBoundlingSphere()">缩放至包围球</button>
+  <button onclick="FlyTo3DTile()">缩放至3DTile</button>
+  <button onclick="FlyTo3DTileNode()">缩放至3DTile节点</button>
+  <button onclick="FlyTo3DTileNodeAndHighlight()">缩放至3DTile节点并高亮A</button>
+  <button onclick="FlyTo3DTileNodeAndHighlight1()">缩放至3DTile节点并高亮B</button>
+  <button onclick="SetHighlightColor()">设置高亮颜色</button>
+</div>
+<div >
+  <button onclick="HideLableImageLayer()">关闭影像标注图层</button>
+  <button onclick="UseOnlineGlobalTerrain()">使用在线地形</button>
+  <button onclick="NotUseOnlineGlobalTerrain()">使用简单地形</button>
+  <button onclick="EnableDepthTestAgainstTerrain()">地形遮挡</button>
+  <button onclick="DisableDepthTestAgainstTerrain()">关闭地形遮挡</button>
+  <button >==</button>
+  <button onclick="SetSingleClickSelectNodeListener()">设置选中3DTileNode回调</button>
+  <button onclick="SetSingleClickUnSelectNodeListener()">设置取消选中3DTileNode回调</button>
+  <button onclick="SetUnHighlightListener()">设置取消高亮回调</button>
+</div>
+<div >
+  <button onclick="SetRoaming()">路径漫游</button>
+  <button onclick="PauseRoaming()">暂停</button>
+  <button onclick="StartRoaming()">开始</button>
+  <button onclick="AccelerateRoaming()">加速</button>
+  <button onclick="DecelerateRoaming()">减速</button>
+  <button onclick="StopRoaming()">停止.删除(停止后需重新添加 BMGIS_Roaming)</button>
+  <button onclick="ShowRoamingLine()">显示路径线</button>
+  <button onclick="HideRoamingLine()">隐藏路径线</button>
+</div>
+
+<div id="cesiumContainer"></div>
+<script src="BMCore/Core.js"></script>
+<script src="BMCore/BMInterface.js"></script>
+<script>
+  BMGIS_Init('cesiumContainer',{
+      BIMMode3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',
+      Terrain3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT_T/'
+      }) ;
+  // BMGIS_Init('cesiumContainer',{
+  //   UseOnLineGlobalTerrain:false,
+  //   // HomeView_West:113.2002,
+  //   // HomeView_South:23.0645,
+  //   // HomeView_East:113.3807,
+  //   // HomeView_North:23.1790
+  // }) 
+  //
+  function PullingHeight(){
+    BMGIS_Pulling3DTileHeight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',100);
+  }
+  function ADD3DTile(){
+    BMGIS_Add3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',true) 
+  }
+  function Remove3DTile()
+  {
+    BMGIS_Remove3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/');
+  }
+  function Show3DTile()
+  {
+    BMGIS_Visible3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',true);
+  }
+  function Hide3DTile()
+  {
+    BMGIS_Visible3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',false);
+  }
+  function SetHomeView()
+  {
+    BMGIS_SetHomeView(113.2002,23.0645,113.3807,23.1790,true);
+  }
+  function FlyToRectangle()
+  {
+    BMGIS_FlyToRectangle(113.2002,23.0645,113.3807,23.1790);
+  }
+  function FlyToBoundlingSphere()
+  {
+    BMGIS_FlyToBoundingSphere(113.2599,23.1324,100,5000);
+  }
+  function FlyTo3DTile()
+  {
+    BMGIS_FlyTo3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/');
+  }
+  function FlyTo3DTileNode()
+  {
+    BMGIS_FlyTo3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2317130.540275,5394349.186563,2484174.871629,5.700195);
+  }
+  function FlyTo3DTileNodeAndHighlight()
+  {
+    BMGIS_FlyTo3DTileNodeAddHighlight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2317075.93769,5394297.683074,2484297.512487,363.570313,['1d227775-d8b6-4ba2-97d9-e55afd359bd1']) 
+  }
+  function FlyTo3DTileNodeAndHighlight1()
+  {
+    BMGIS_FlyTo3DTileNodeAddHighlight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2317049.134477,5394260.563475,2484445.650364,45.577148,['927eeaa1-8b73-4f43-9438-0162e0ec8718']) 
+  }
+  function UseOnlineGlobalTerrain()
+  {
+    BMGIS_UseGlobalTerrain(true);
+  }
+  function NotUseOnlineGlobalTerrain()
+  {
+    BMGIS_UseGlobalTerrain(false);
+  }
+  function EnableDepthTestAgainstTerrain()
+  {
+    BMGIS_DepthTestAgainstTerrain(true);
+  }
+  function DisableDepthTestAgainstTerrain()
+  {
+    BMGIS_DepthTestAgainstTerrain(false);
+  }
+  function SetSingleClickSelectNodeListener()
+  {
+    BMGIS_SetMouseLeftClickSelect3DTileNodeEventListener(TempMouseLeftClickSelectNodeListener);
+  }
+  function SetSingleClickUnSelectNodeListener()
+  {
+    BMGIS_SetMouseLeftClickUnSelect3DTileNodeEventListener(TempMouseLeftClickUnSelectNodeListener);
+  }
+  function SetUnHighlightListener()
+  {
+    BMGIS_SetUnHighlightListener(TempUnHighlightListener);
+  }
+  function Set3DTileNodeColor()
+  {
+    BMGIS_Set3DTileNodeColor('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',1.0,1.0,0,1.0,['1d227775-d8b6-4ba2-97d9-e55afd359bd1']);
+  }
+  function Reset3DTileNodeColor()
+  {
+    BMGIS_Reset3DTileNodeColor('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['1d227775-d8b6-4ba2-97d9-e55afd359bd1']);
+  }
+  function Show3DTileNode()
+  {
+    BMGIS_Show3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['1d227775-d8b6-4ba2-97d9-e55afd359bd1']);
+  }
+  function Hide3DTileNode()
+  {
+    BMGIS_Hide3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['1d227775-d8b6-4ba2-97d9-e55afd359bd1']);
+  }
+  function SetHighlightColor()
+  {
+    BMGIS_SetSelectColor(0,0,1,1);
+  }
+  function SetScreenSpaceErrorr()
+  {
+    BMGIS_SetScreenSpaceErrorr('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',100);
+  }
+  function SetRoaming()
+  {
+    BMGIS_Roaming([113.24842613162288,23.07074705612892,0,113.25071008203537,23.070916189329168,0,113.25629578536169,23.074453158816546,0,113.26099583082308,23.076481545792806,4.656612873077393e-10,113.26521455691645,23.07833412667094,0,113.26796249591939,23.08104550666298,4.656612873077393e-10,113.2688725423343,23.082418000962885,0,113.26994018078753,23.08347090001286,0,113.27280866855816,23.084449168627895,0,113.27547368459446,23.08479165574317,0,113.2782721210255,23.085212476882614,0,113.2831837462769,23.085302115891803,4.656612873077393e-10,113.28630396467489,23.08457554430187,4.656612873077393e-10,113.294978380138,23.084671133975473,0,113.30348331057503,23.0845811452701,0,113.30513187355773,23.083993573052624,0,113.30906959019445,23.08133766057236,0,113.31217462795551,23.08049737192407,4.656612873077393e-10,113.3225647876044,23.08056406692345,0,113.33045123780414,23.080975674769068,0,113.3379406066149,23.082275381216473,4.656612873077393e-10,113.34491799342798,23.083378419915284,4.656612873077393e-10,113.35627419437559,23.086565378720397,4.656612873077393e-10,113.36035825626044,23.087809289669334,0,113.3618626829664,23.089072341970425,0,113.36260473982814,23.090587069413523,0,113.36285091198742,23.1054675653955,4.656612873077393e-10,113.36191473233443,23.10762750341599,0,113.3590237807959,23.110045570537572,0,113.35745058737913,23.11345460656164,4.656612873077393e-10,113.35820998826192,23.118121505669578,4.656612873077393e-10,113.35691825769896,23.124791599494994,0,113.35864331673886,23.13254449207973,-1.1406325468715177e-9,113.35880069481568,23.133926767221443,0,113.35711372391049,23.13604589195148,0,113.34699379466267,23.13758833255775,0,113.34348484899394,23.1385354747007,0,113.3404361901619,23.141726695356315,0,113.33703164787218,23.143840335660588,0,113.33021392837915,23.14406253967341,4.656612873077393e-10,113.32762981773766,23.144997836233486,4.656612873077393e-10,113.32614778064026,23.148582534118642,4.656612873077393e-10,113.32482182928162,23.1516504506956,0,113.32326517359738,23.153032584806077,4.656612873077393e-10,113.3177759412082,23.156006335666035,0,113.31555024390886,23.15603187109172,0,113.31372998296624,23.15553586496829,0,113.31162235189387,23.15522865225729,0,113.30899054114944,23.1543698626357,0,113.30527986552828,23.154394176433236,0,113.30088848384374,23.155003457225995,0,113.29919695326222,23.155444298376086,4.656612873077393e-10,113.29677686355689,23.156822829166696,0,113.2906368344562,23.15660080646526,0,113.28241029744741,23.157110181113833,0,113.28014283817691,23.15779960960521,0,113.27867704764138,23.159365303915884,0,113.27780071389445,23.161086445939866,0,113.27576609996625,23.16369236665067,0,113.27426405698351,23.16444436524441,0,113.26760403011731,23.16396612448391,0,113.26562927236974,23.162695688900776,0,113.26355119115286,23.158361306504336,0,113.26165274363535,23.156981850495615,4.656612873077393e-10,113.2590561798613,23.15664506874581,0,113.25552011174325,23.155005281792423,-1.1406325468715177e-9,113.25194044313956,23.14858008869362,0,113.25169310653197,23.140815217405198,0,113.25055864961828,23.138768720701208,0,113.24653729721629,23.136570685259105,-1.1406325468715177e-9,113.2384228488291,23.138473546361183,4.656612873077393e-10,113.23532703767064,23.13792365867348,1.1406325468715177e-9,113.23185045538936,23.13385945617896,0,113.23029710063331,23.13103491897679,0,113.22623108030889,23.12689903164962,0,113.22602574846634,23.125121434568843,0,113.22764172678535,23.1225853345138,0,113.22810647461972,23.120425125870174,0,113.22231146529872,23.115727543439576,0,113.21663267593908,23.11327215767959,0,113.21512287173704,23.111649287743635,0,113.21504728416761,23.109322808171907,4.656612873077393e-10,113.21663695045639,23.107300275268738,4.656612873077393e-10,113.22219241333225,23.10536036259591,4.656612873077393e-10,113.23057992526579,23.10140838505804,0,113.23491982909204,23.0992656590669,0,113.23612189059203,23.09777063092902,4.656612873077393e-10,113.24288966823609,23.08439252341229,0,113.24384548957485,23.082088624516615,0,113.24456792736099,23.076686439942147,0,113.24615210153887,23.072579779715838,0,113.2480514053984,23.07089530793179,-1.1406325468715177e-9],200); 
+  }
+  function PauseRoaming()
+  {
+    BMGIS_PauseRoaming();
+  }
+  function StartRoaming()
+  {
+    BMGIS_StartRoaming();
+  }
+  function AccelerateRoaming()
+  {
+    BMGIS_AccelerateRoaming();
+  }
+  function DecelerateRoaming()
+  {
+    BMGIS_DecelerateRoaming();
+   }
+  function StopRoaming()
+  {
+    BMGIS_StopRoaming();
+  }
+  function ShowRoamingLine()
+  {
+    BMGIS_SetRoamingLineVisibility(true);
+  }
+  function HideRoamingLine()
+  {
+    BMGIS_SetRoamingLineVisibility(false);
+  }
+  function HideLableImageLayer()
+  {
+    BMGIS_LabelImageVisibility(false);
+  }
+  /////////////////////////////////////////////
+  function TempMouseLeftClickSelectNodeListener(guidStr)
+  {
+    console.log("鼠标单击 节点被选中:" + guidStr);
+  }
+  function TempMouseLeftClickUnSelectNodeListener(guidStr)
+  {
+    console.log("鼠标单击 节点取消选中:" + guidStr);
+  }
+  function TempUnHighlightListener()
+  {
+    console.log("取消高亮");
+  }
+</script>
+</body>
+</html>
