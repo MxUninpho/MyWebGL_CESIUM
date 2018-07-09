@@ -92,6 +92,11 @@ BMGolbe.RoamingEntiy = undefined;
 BMGolbe.RoamingLineVisible = true;
 BMGolbe.RoamingLineMaterialGlow = new Cesium.PolylineGlowMaterialProperty({ glowPower : 0.5,color : Cesium.Color.PALETURQUOISE });
 BMGolbe.RoamingLineMaterialColor = new Cesium.Color(0.0,0.0,0.0,0.0);
+//图片标签根节点
+BMGolbe.ImageLabelRoot = new Cesium.Entity();
+//文字标签根节点
+BMGolbe.TextLabelRoot = new Cesium.Entity();
+BMGolbe.LabelPixelOffset = new Cesium.Cartesian2(0,-10);
 //
 BMGolbe.scratchCartesianPt = new Cesium.Cartesian3(0, 0,0);
 BMGolbe.scratchCartographicPt = new Cesium.Cartographic(0, 0,0);
@@ -155,6 +160,9 @@ function BMInit(container,options)
     //
     BMGolbe.viewer.scene.camera._suspendTerrainAdjustment = false;
     BMGolbe.viewer.cesiumWidget.creditContainer.style.display= "none";
+    //
+    BMGolbe.viewer.entities.add(BMGolbe.ImageLabelRoot);
+    BMGolbe.viewer.entities.add(BMGolbe.TextLabelRoot);
     //
     if(options.BIMMode3DTileURL !== "")
     {
@@ -848,9 +856,97 @@ function BMSetRoamingLineVisibility(LineVisible)
  * @Fuction
  * @param {Boolean} Visible = true 
  */
-function BMLabelImageVisibility(Visible)
+function BMAnnotationLayerVisibility(Visible)
 {
     BMGolbe.imageLabel.show = Visible;
+}
+/** 添加EntityImageLabel
+ * @Fuction
+ * @param {Number} Pos_longitude 经度（°） 
+ * @param {Number} Pos_latitude 纬度（°）
+ * @param {Number} Pos_height 高度（m）
+ * @param {String} imageURL 图片 URL
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.colorR = 1.0] 颜色[0-1] 默认白色
+ * @param {Number} [options.colorG = 1.0] 颜色[0-1]
+ * @param {Number} [options.colorB = 1.0] 颜色[0-1]
+ * @param {Number} [options.colorA = 1.0] 颜色[0-1] 0完全透明
+ * @param {Boolean} [options.ShowLabelPoint = true] 标注位置
+ * @param {Number} [options.minVisibleDis = 1.0] 最小显示距离---图片位置与相机位置的距离---小于该距离 标签不显示
+ * @param {Number} [options.maxVisibleDis = 2e6] 最大显示距离---图片位置与相机位置的距离---大于该距离 标签不显示 
+ * 
+ * @returns {String} lableID
+ */
+function BMAddEntityImageLabel(Pos_longitude,Pos_latitude,Pos_height,imageURL,options)
+{
+   var ddc = new Cesium.DistanceDisplayCondition(options.minVisibleDis ,options.maxVisibleDis);  
+   var newEntity =  BMGolbe.viewer.entities.add({
+        parent : BMGolbe.ImageLabelRoot,
+        position : Cesium.Cartesian3.fromDegrees(Pos_longitude, Pos_latitude, Pos_height),
+        billboard : {
+            image : imageURL,
+            horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
+            verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
+            color : new Cesium.Color(options.colorR,options.colorG,options.colorB,options.colorA),
+            distanceDisplayCondition : ddc,
+            pixelOffset:BMGolbe.LabelPixelOffset
+        },
+        point:{
+            color: Cesium.Color.SNOW ,
+            outlineColor: Cesium.Color.CORAL,
+            outlineWidth:1,
+            pixelSize:3,
+            distanceDisplayCondition: ddc
+        }
+    });
+    //
+    newEntity.point.show = options.ShowLabelPoint = true;
+    return newEntity.id;
+}
+/** 添加EntityTextLabel
+ * @Fuction
+ * @param {Number} Pos_longitude 经度（°） 
+ * @param {Number} Pos_latitude 纬度（°）
+ * @param {Number} Pos_height 高度（m）
+ * @param {String} text 文字 
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.colorR = 1.0] 颜色[0-1] 默认白色
+ * @param {Number} [options.colorG = 1.0] 颜色[0-1]
+ * @param {Number} [options.colorB = 1.0] 颜色[0-1]
+ * @param {Number} [options.colorA = 1.0] 颜色[0-1] 0完全透明
+ * @param {Number} [options.font = '30px sans-serif'] CSS font
+ * @param {Boolean} [options.ShowLabelPoint = true] 标注位置
+ * @param {Number} [options.minVisibleDis = 1.0] 最小显示距离---图片位置与相机位置的距离---小于该距离 标签不显示
+ * @param {Number} [options.maxVisibleDis = 2e6] 最大显示距离---图片位置与相机位置的距离---大于该距离 标签不显示 
+ * 
+ * @returns {String} lableID
+ */
+function BMAddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,text,options)
+{
+    var ddc = new Cesium.DistanceDisplayCondition(options.minVisibleDis ,options.maxVisibleDis);  
+    var newEntity =  BMGolbe.viewer.entities.add({
+         parent : BMGolbe.TextLabelRoot,
+         position : Cesium.Cartesian3.fromDegrees(Pos_longitude, Pos_latitude, Pos_height),
+         label : {
+             text : text,
+             horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
+             verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
+             fillColor : new Cesium.Color(options.colorR,options.colorG,options.colorB,options.colorA),
+             distanceDisplayCondition : ddc,
+             font:options.font,
+             pixelOffset:BMGolbe.LabelPixelOffset
+         },
+         point:{
+             color: Cesium.Color.SNOW ,
+             outlineColor: Cesium.Color.CORAL,
+             outlineWidth:1,
+             pixelSize:3,
+             distanceDisplayCondition: ddc
+         }
+     });
+     //
+     newEntity.point.show = options.ShowLabelPoint = true;
+     return newEntity.id;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //private

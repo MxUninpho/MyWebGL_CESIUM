@@ -480,12 +480,146 @@ function BMGIS_SetRoamingLineVisibility(LineVisible)
  * @param {Boolean} Visible = true 
  * @example
  * 
- * BMGIS_LabelImageVisibility(true) 
+ * BMGIS_AnnotationLayerVisibility(true) 
  */
-function BMGIS_LabelImageVisibility(Visible)
+function BMGIS_AnnotationLayerVisibility(Visible)
 {
     Visible = Cesium.defaultValue(Visible, true);
-    BMLabelImageVisibility(Visible);
+    BMAnnotationLayerVisibility(Visible);
+}
+/** 添加EntityImageLabel
+ * @Fuction
+ * @param {Number} Pos_longitude 经度（°） 
+ * @param {Number} Pos_latitude 纬度（°）
+ * @param {Number} Pos_height 高度（m）
+ * @param {String} imageURL 图片 URL
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.colorR = 1.0] 颜色[0-1] 默认白色
+ * @param {Number} [options.colorG = 1.0] 颜色[0-1]
+ * @param {Number} [options.colorB = 1.0] 颜色[0-1]
+ * @param {Number} [options.colorA = 1.0] 颜色[0-1] 0完全透明
+ * @param {Boolean} [options.ShowLabelPoint = true] 标注位置点
+ * @param {Number} [options.minVisibleDis = 1.0] 最小显示距离---图片位置与相机位置的距离---小于该距离 标签不显示
+ * @param {Number} [options.maxVisibleDis = 2e6] 最大显示距离---图片位置与相机位置的距离---大于该距离 标签不显示 
+ * 
+ * @returns {String} lableID
+ * @example
+ * 
+ * BMGIS_AddEntityImageLabel(113.2599, 23.1324,10,"./TestImage/cesium_credit.png") 
+ */
+function BMGIS_AddEntityImageLabel(Pos_longitude,Pos_latitude,Pos_height,imageURL,options)
+{
+    imageURL = Cesium.defaultValue(imageURL, "");
+    if(imageURL === "") return -1;
+    if (typeof Pos_longitude !== 'number') return -1;
+    if (typeof Pos_latitude !== 'number') return -1;
+    if (typeof Pos_height !== 'number') return -1;
+    //
+    options = Cesium.defaultValue(options, {});
+    options.colorR = Cesium.defaultValue(options.colorR, 1.0);
+    options.colorG = Cesium.defaultValue(options.colorG, 1.0);
+    options.colorB = Cesium.defaultValue(options.colorB, 1.0);
+    options.colorA = Cesium.defaultValue(options.colorA, 1.0);
+    options.ShowLabelPoint = Cesium.defaultValue(options.ShowLabelPoint, true);
+    options.minVisibleDis = Cesium.defaultValue(options.minVisibleDis, 1.0);
+    options.maxVisibleDis = Cesium.defaultValue(options.maxVisibleDis, 2e6);
+    //
+    return BMAddEntityImageLabel(Pos_longitude,Pos_latitude,Pos_height,imageURL,options);
+}
+/** 添加EntityTextLabel
+ * @Fuction
+ * @param {Number} Pos_longitude 经度（°） 
+ * @param {Number} Pos_latitude 纬度（°）
+ * @param {Number} Pos_height 高度（m）
+ * @param {String} text 文字 
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.colorR = 1.0] 颜色[0-1] 默认白色
+ * @param {Number} [options.colorG = 1.0] 颜色[0-1]
+ * @param {Number} [options.colorB = 1.0] 颜色[0-1]
+ * @param {Number} [options.colorA = 1.0] 颜色[0-1] 0完全透明
+ * @param {Number} [options.font = '30px sans-serif'] CSS font
+ * @param {Boolean} [options.ShowLabelPoint = true] 标注位置点
+ * @param {Number} [options.minVisibleDis = 1.0] 最小显示距离---图片位置与相机位置的距离---小于该距离 标签不显示
+ * @param {Number} [options.maxVisibleDis = 2e6] 最大显示距离---图片位置与相机位置的距离---大于该距离 标签不显示 
+ * 
+ * @returns {String} lableID
+ * @example
+ * 
+ * BMGIS_AddEntityTextLabel(113.2599, 23.1324,10,"文字标签") 
+ */
+function BMGIS_AddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,text,options)
+{
+    text = Cesium.defaultValue(text, "");
+    if(text === "") return -1;
+    if (typeof Pos_longitude !== 'number') return -1;
+    if (typeof Pos_latitude !== 'number') return -1;
+    if (typeof Pos_height !== 'number') return -1;
+    //
+    options = Cesium.defaultValue(options, {});
+    options.colorR = Cesium.defaultValue(options.colorR, 1.0);
+    options.colorG = Cesium.defaultValue(options.colorG, 1.0);
+    options.colorB = Cesium.defaultValue(options.colorB, 1.0);
+    options.colorA = Cesium.defaultValue(options.colorA, 1.0);
+    options.font = Cesium.defaultValue(options.font, '30px sans-serif');
+    options.ShowLabelPoint = Cesium.defaultValue(options.ShowLabelPoint, true);
+    options.minVisibleDis = Cesium.defaultValue(options.minVisibleDis, 1.0);
+    options.maxVisibleDis = Cesium.defaultValue(options.maxVisibleDis, 2e6);
+    //
+    return BMAddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,imageURL,width,height,options);
+}
+/** 修改EntityTextLabel---修改标签位置、颜色、文字内容、显示隐藏
+ * @Fuction
+ * @param {String} lableID 标签ID  
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.colorR] 颜色[0-1] 默认白色
+ * @param {Number} [options.colorG] 颜色[0-1]
+ * @param {Number} [options.colorB] 颜色[0-1]
+ * @param {Number} [options.colorA] 颜色[0-1] 0完全透明
+ * @param {Number} [options.Pos_latitude] 经度（°）
+ * @param {Number} [options.Pos_height] 纬度（°）
+ * @param {Number} [options.Pos_height] 高度（m）
+ * @param {String} [options.text] 显示
+ * @param {Boolean} [options.Show] 文字内容
+ * 
+ * @example
+ * 
+ * BMGIS_EditEntityTextLabel("IDDDDDDDDDDDD",{
+   text:"修改后内容"
+  }) 
+ */
+function BMGIS_EditEntityTextLabel(lableID,options)
+{
+    lableID = Cesium.defaultValue(lableID, "");
+    if(lableID === "") return;
+    //
+    BMEditEntityTextLabel(lableID,options);
+}
+/** 修改EntityImageLabel---修改标签位置、颜色、图片、显示隐藏
+ * @Fuction
+ * @param {String} lableID 标签ID  
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.colorR] 颜色[0-1] 默认白色
+ * @param {Number} [options.colorG] 颜色[0-1]
+ * @param {Number} [options.colorB] 颜色[0-1]
+ * @param {Number} [options.colorA] 颜色[0-1] 0完全透明
+ * @param {Number} [options.Pos_latitude] 经度（°）
+ * @param {Number} [options.Pos_height] 纬度（°）
+ * @param {Number} [options.Pos_height] 高度（m）
+ * @param {String} [options.imageURL] 显示
+ * @param {Boolean} [options.Show] 文字内容
+ * 
+ * @example
+ * 
+ * BMGIS_EditEntityTextLabel("IDDDDDDDDDDDD",{
+   text:"修改后内容"
+  }) 
+ */
+function BMGIS_EditEntityTextLabel(lableID,options)
+{
+    lableID = Cesium.defaultValue(lableID, "");
+    if(lableID === "") return;
+    //
+    BMEditEntityTextLabel(lableID,options);
 }
 
 
