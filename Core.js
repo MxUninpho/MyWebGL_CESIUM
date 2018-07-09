@@ -88,11 +88,11 @@ BMGolbe.UnHighlightEvent = new Cesium.Event();
 //选中颜色
 BMGolbe.SelectColor = new Cesium.Color(1.0,0.0,0.0,1.0);
 //漫游Entity
-BMGolbe.RoamingPositionProperty = undefined;
+BMGolbe.RoamingEntiy = undefined;
 BMGolbe.IsRoaming = false;
-BMGolbe.RoamingLineEntity = undefined;
 BMGolbe.RoamingLineVisible = true;
 BMGolbe.RoamingLineMaterialGlow = new Cesium.PolylineGlowMaterialProperty({ glowPower : 0.5,color : Cesium.Color.PALETURQUOISE });
+BMGolbe.RoamingLineMaterialColor = new Cesium.Color(0.0,0.0,0.0,0.0);
 //图片标签根节点
 BMGolbe.ImageLabelRoot = new Cesium.Entity();
 BMGolbe.ImageLabelEntites = [];
@@ -310,7 +310,7 @@ function BMInit(container,options)
     BMGolbe.viewer.clock.onTick.addEventListener(function(clock) {
         var camera = BMGolbe.viewer.camera;
         var ellipsoid = BMGolbe.viewer.scene.globe.ellipsoid; 
-        if (BMGolbe.IsRoaming && BMGolbe.RoamingPositionProperty) 
+        if (BMGolbe.IsRoaming && BMGolbe.RoamingEntiy) 
         {
             var currentTime = clock.currentTime;
             var startTime = clock.startTime;
@@ -319,16 +319,11 @@ function BMInit(container,options)
             if(Cesium.JulianDate.greaterThanOrEquals(nextTime,stopTime))
                 nextTime = startTime;
             //
-            var currentPosition = BMGolbe.RoamingPositionProperty.getValue(currentTime,_scratchCurPt);
-            var nextPosition = BMGolbe.RoamingPositionProperty.getValue(nextTime,_scratchNexPt);
+            var currentPosition = BMGolbe.RoamingEntiy.position.getValue(currentTime,_scratchCurPt);
+            var nextPosition = BMGolbe.RoamingEntiy.position.getValue(nextTime,_scratchNexPt);
             _scratchDirection = Cesium.Cartesian3.subtract(nextPosition,currentPosition,_scratchDirection);
             _scratchDirection = Cesium.Cartesian3.normalize(_scratchDirection,_scratchDirection);
             _scratchUp = ellipsoid.geocentricSurfaceNormal(currentPosition,_scratchUp);
-            //
-            Cesium.Cartographic.fromCartesian(currentPosition,Cesium.Ellipsoid.WGS84,BMGolbe.scratchCartographicPt);
-            BMGolbe.scratchCartographicPt.height += 10;
-            Cesium.Cartesian3.fromRadians(BMGolbe.scratchCartographicPt.longitude,BMGolbe.scratchCartographicPt.latitude,BMGolbe.scratchCartographicPt.height,Cesium.Ellipsoid.WGS84,currentPosition);
-            //
             camera.position = currentPosition; 
             camera.direction =  _scratchDirection;
             camera.up = _scratchUp;
@@ -770,12 +765,10 @@ function BMSetScreenSpaceErrorr(tileURL,ScreenSpaceError)
  */
 function BMRoaming(Datas,RoamingSpeed,offsetHeight)
 {
-    if(BMGolbe.RoamingPositionProperty !== undefined)
+    if(BMGolbe.RoamingEntiy !== undefined)
     {
-        BMGolbe.IsRoaming = false;
-        BMGolbe.RoamingPositionProperty = undefined;
-        BMGolbe.viewer.entities.remove(BMGolbe.RoamingLineEntity);
-        BMGolbe.RoamingLineEntity = undefined;
+        BMGolbe.viewer.entities.remove(BMGolbe.RoamingEntiy);
+        BMGolbe.RoamingEntiy = undefined;
     }
     //
     var i,j;
@@ -803,25 +796,47 @@ function BMRoaming(Datas,RoamingSpeed,offsetHeight)
     }
     //
     var positionProperty = new Cesium.SampledPositionProperty();
+    var PointGraphic = new Cesium.PointGraphics({
+        pixelSize:2
+    });
+    var PathGraphic;
+    if(BMGolbe.RoamingLineVisible)
+    {
+        PathGraphic= new Cesium.PathGraphics({
+            width:4,
+            material : BMGolbe.RoamingLineMaterialGlow
+        });
+    }
+    else
+    {
+        PathGraphic= new Cesium.PathGraphics({
+            width:1,
+            material : BMGolbe.RoamingLineMaterialColor
+        });
+    }
+    //
     positionProperty.addSamples(arryTimes,arryPts);
-    BMGolbe.RoamingLineEntity = new Cesium.Entity({
+    var entity = new Cesium.Entity({
+        id:"BMRoaming",
         name:"BMRoaming",
-        polyline:{
-            positions:arryPts,
-            width:2,
-            material:BMGolbe.RoamingLineMaterialGlow
-        }
+        position:positionProperty,
+        point:PointGraphic,
+        availability: new Cesium.TimeIntervalCollection([
+            new Cesium.TimeInterval({
+                start: arryTimes[0],
+                stop: arryTimes[numPt-1]
+            })]),
+        path:PathGraphic
     });
     //
-    BMGolbe.RoamingLineEntity.show = BMGolbe.RoamingLineVisible;
-    BMGolbe.viewer.entities.add(BMGolbe.RoamingLineEntity);
+    BMGolbe.RoamingEntiy = entity;
+    BMGolbe.viewer.entities.add(entity);
     BMGolbe.viewer.clock.shouldAnimate = true;
     BMGolbe.viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
     BMGolbe.viewer.clock.startTime = startTime;
     BMGolbe.viewer.clock.currentTime = startTime;
     BMGolbe.viewer.clock.stopTime = arryTimes[numPt-1];
     BMGolbe.IsRoaming = true;
-    BMGolbe.RoamingPositionProperty = positionProperty;
 }
 //
 /** 暂停漫游
@@ -860,13 +875,12 @@ function BMDecelerateRoaming()
 function BMStopRoaming()
 {
     BMGolbe.viewer.clock.shouldAnimate = false;
-    BMGolbe.IsRoaming = false;
-    if(BMGolbe.RoamingPositionProperty !== undefined)
+    if(BMGolbe.RoamingEntiy !== undefined)
     {
-        BMGolbe.viewer.entities.remove(BMGolbe.RoamingLineEntity);
-        BMGolbe.RoamingLineEntity = undefined;
-        BMGolbe.RoamingPositionProperty = undefined;
+        BMGolbe.viewer.entities.remove(BMGolbe.RoamingEntiy);
+        BMGolbe.RoamingEntiy = undefined;
     }
+    BMGolbe.IsRoaming = false;
 }
 /** 显示\隐藏漫游路径线
  * @Fuction
@@ -875,8 +889,17 @@ function BMStopRoaming()
 function BMSetRoamingLineVisibility(LineVisible)
 {
     BMGolbe.RoamingLineVisible = LineVisible;
-    if(BMGolbe.RoamingLineEntity !== undefined)
-        BMGolbe.RoamingLineEntity.show = LineVisible;
+    if(LineVisible)
+    {
+        if(BMGolbe.RoamingEntiy !== undefined)
+            BMGolbe.RoamingEntiy.path.material = BMGolbe.RoamingLineMaterialGlow;
+    }
+    else
+    {
+        if(BMGolbe.RoamingEntiy !== undefined)
+            BMGolbe.RoamingEntiy.path.material = BMGolbe.RoamingLineMaterialColor;
+    }
+    
 }
 /** 显示\隐藏 影像路网标注图层
  * @Fuction
