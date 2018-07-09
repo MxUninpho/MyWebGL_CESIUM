@@ -89,7 +89,6 @@ BMGolbe.UnHighlightEvent = new Cesium.Event();
 BMGolbe.SelectColor = new Cesium.Color(1.0,0.0,0.0,1.0);
 //漫游Entity
 BMGolbe.RoamingEntiy = undefined;
-BMGolbe.IsRoaming = false;
 BMGolbe.RoamingLineVisible = true;
 BMGolbe.RoamingLineMaterialGlow = new Cesium.PolylineGlowMaterialProperty({ glowPower : 0.5,color : Cesium.Color.PALETURQUOISE });
 BMGolbe.RoamingLineMaterialColor = new Cesium.Color(0.0,0.0,0.0,0.0);
@@ -300,45 +299,16 @@ function BMInit(container,options)
             }
         }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-    //
-    //漫游实现
-    var _scratchNextTime = new Cesium.JulianDate();
-    var _scratchCurPt = new Cesium.Cartesian3(0, 0,0);
-    var _scratchNexPt = new Cesium.Cartesian3(0, 0,0);
-    var _scratchDirection = new Cesium.Cartesian3(0, 0,0);
-    var _scratchUp = new Cesium.Cartesian3(0,0,0);
-    BMGolbe.viewer.clock.onTick.addEventListener(function(clock) {
-        var camera = BMGolbe.viewer.camera;
-        var ellipsoid = BMGolbe.viewer.scene.globe.ellipsoid; 
-        if (BMGolbe.IsRoaming && BMGolbe.RoamingEntiy) 
-        {
-            var currentTime = clock.currentTime;
-            var startTime = clock.startTime;
-            var stopTime = clock.stopTime;
-            var nextTime = Cesium.JulianDate.addSeconds(currentTime,1,_scratchNextTime);
-            if(Cesium.JulianDate.greaterThanOrEquals(nextTime,stopTime))
-                nextTime = startTime;
-            //
-            var currentPosition = BMGolbe.RoamingEntiy.position.getValue(currentTime,_scratchCurPt);
-            var nextPosition = BMGolbe.RoamingEntiy.position.getValue(nextTime,_scratchNexPt);
-            _scratchDirection = Cesium.Cartesian3.subtract(nextPosition,currentPosition,_scratchDirection);
-            _scratchDirection = Cesium.Cartesian3.normalize(_scratchDirection,_scratchDirection);
-            _scratchUp = ellipsoid.geocentricSurfaceNormal(currentPosition,_scratchUp);
-            camera.position = currentPosition; 
-            camera.direction =  _scratchDirection;
-            camera.up = _scratchUp;
-        }
-    });
     ////
-    // function computeCircle(radius) {
-    //     var positions = [];
-    //     for (var i = 0; i < 360; i++) {
-    //       var radians = Cesium.Math.toRadians(i);
-    //       positions.push(new Cesium.Cartesian2(radius * Math.cos(radians), radius * Math.sin(radians)));
-    //     }
-    //     return positions;
-    //   }
-    //   //
+    function computeCircle(radius) {
+        var positions = [];
+        for (var i = 0; i < 360; i++) {
+          var radians = Cesium.Math.toRadians(i);
+          positions.push(new Cesium.Cartesian2(radius * Math.cos(radians), radius * Math.sin(radians)));
+        }
+        return positions;
+      }
+      //
     // var llll =  new Cesium.PolylineVolumeGeometry({
     //     polylinePositions : Cesium.Cartesian3.fromDegreesArray([
     //         113.3666, 23.1130,
@@ -757,6 +727,11 @@ function BMSetScreenSpaceErrorr(tileURL,ScreenSpaceError)
     //
     findTile.maximumScreenSpaceError = ScreenSpaceError;
 }
+
+
+
+
+
 /** 设置漫游路径
  * @Fuction
  * @param {Number[]} Datas 路径点数组 经度0,纬度0,高度0,经度1,纬度1,高度1……  
@@ -770,6 +745,7 @@ function BMRoaming(Datas,RoamingSpeed,offsetHeight)
         BMGolbe.viewer.entities.remove(BMGolbe.RoamingEntiy);
         BMGolbe.RoamingEntiy = undefined;
     }
+    BMGolbe.viewer.trackedEntity = undefined;
     //
     var i,j;
     var length = Datas.length;
@@ -831,12 +807,12 @@ function BMRoaming(Datas,RoamingSpeed,offsetHeight)
     //
     BMGolbe.RoamingEntiy = entity;
     BMGolbe.viewer.entities.add(entity);
+    BMGolbe.viewer.trackedEntity = entity;
     BMGolbe.viewer.clock.shouldAnimate = true;
     BMGolbe.viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
     BMGolbe.viewer.clock.startTime = startTime;
     BMGolbe.viewer.clock.currentTime = startTime;
     BMGolbe.viewer.clock.stopTime = arryTimes[numPt-1];
-    BMGolbe.IsRoaming = true;
 }
 //
 /** 暂停漫游
@@ -845,7 +821,6 @@ function BMRoaming(Datas,RoamingSpeed,offsetHeight)
 function BMPauseRoaming()
 {
     BMGolbe.viewer.clock.shouldAnimate = false;
-    BMGolbe.IsRoaming = false;
 }
 /** 开始漫游
  * @Fuction
@@ -853,7 +828,6 @@ function BMPauseRoaming()
 function BMStartRoaming()
 {
     BMGolbe.viewer.clock.shouldAnimate = true;
-    BMGolbe.IsRoaming = true;
 }
 /** 加速 当前速度的1.1倍
  * @Fuction
@@ -880,7 +854,7 @@ function BMStopRoaming()
         BMGolbe.viewer.entities.remove(BMGolbe.RoamingEntiy);
         BMGolbe.RoamingEntiy = undefined;
     }
-    BMGolbe.IsRoaming = false;
+    BMGolbe.viewer.trackedEntity = undefined;
 }
 /** 显示\隐藏漫游路径线
  * @Fuction

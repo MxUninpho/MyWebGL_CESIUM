@@ -416,7 +416,7 @@ function BMGIS_SetScreenSpaceErrorr(tileURL,ScreenSpaceError)
  * @param {Number} offsetHeight = 10 路径点高度值偏移量m（每个点的高度值 += offsetHeight）
  * @example
  * 
- * BMGIS_Roaming([122,23,0,123,23,0,……],200) 
+ * BMGIS_Roaming([122,23,0,123,23,0,……],200,10) 
  */
 function BMGIS_Roaming(Datas,RoamingSpeed,offsetHeight)
 {
