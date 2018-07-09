@@ -94,9 +94,13 @@ BMGolbe.RoamingLineMaterialGlow = new Cesium.PolylineGlowMaterialProperty({ glow
 BMGolbe.RoamingLineMaterialColor = new Cesium.Color(0.0,0.0,0.0,0.0);
 //图片标签根节点
 BMGolbe.ImageLabelRoot = new Cesium.Entity();
+BMGolbe.ImageLabelEntites = [];
+BMGolbe.ClickImageLabelEvent = new Cesium.Event();
 //文字标签根节点
 BMGolbe.TextLabelRoot = new Cesium.Entity();
-BMGolbe.LabelPixelOffset = new Cesium.Cartesian2(0,-10);
+BMGolbe.TextLabelEntites = [];
+BMGolbe.ClickTextLabelEvent = new Cesium.Event();
+BMGolbe.LabelPixelOffset = new Cesium.Cartesian2(0,-5);
 //
 BMGolbe.scratchCartesianPt = new Cesium.Cartesian3(0, 0,0);
 BMGolbe.scratchCartographicPt = new Cesium.Cartographic(0, 0,0);
@@ -232,6 +236,8 @@ function BMInit(container,options)
         }
     },Cesium.ScreenSpaceEventType.MOUSE_MOVE);
     BMGolbe.viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    BMGolbe.viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+    BMGolbe.viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
     //
     // BMGolbe.viewer.screenSpaceEventHandler.setInputAction(function onLeftClick(movement) {
         
@@ -278,6 +284,18 @@ function BMInit(container,options)
                 //
                 var guid = pickedFeature.getProperty('name'); 
                 BMGolbe.Select3DTileNodeEvent.raiseEvent(guid);
+            }
+        }
+        else if(pickedFeature.id instanceof Cesium.Entity)
+        {
+            var index = GetArrayElementIndex(BMGolbe.TextLabelEntites,pickedFeature.id);
+            if(index !== -1)
+                BMGolbe.ClickTextLabelEvent.raiseEvent(pickedFeature.id.id);
+            else
+            {
+                index = GetArrayElementIndex(BMGolbe.ImageLabelEntites,pickedFeature.id);
+                if(index !== -1)
+                    BMGolbe.ClickImageLabelEvent.raiseEvent(pickedFeature.id.id);
             }
         }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -901,6 +919,7 @@ function BMAddEntityImageLabel(Pos_longitude,Pos_latitude,Pos_height,imageURL,op
     });
     //
     newEntity.point.show = options.ShowLabelPoint = true;
+    BMGolbe.ImageLabelEntites.push(newEntity);
     return newEntity.id;
 }
 /** 添加EntityTextLabel
@@ -946,7 +965,187 @@ function BMAddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,text,options
      });
      //
      newEntity.point.show = options.ShowLabelPoint = true;
+     BMGolbe.TextLabelEntites.push(newEntity);
      return newEntity.id;
+}
+/** 修改EntityTextLabel---修改标签位置、颜色、文字内容、显示隐藏
+ * @Fuction
+ * @param {String} lableID 标签ID  
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.colorR] 颜色[0-1] 默认白色
+ * @param {Number} [options.colorG] 颜色[0-1]
+ * @param {Number} [options.colorB] 颜色[0-1]
+ * @param {Number} [options.colorA] 颜色[0-1] 0完全透明
+ * @param {Number} [options.Pos_longitude] 经度（°）
+ * @param {Number} [options.Pos_latitude] 纬度（°）
+ * @param {Number} [options.Pos_height] 高度（m）
+ * @param {String} [options.text] 文字内容
+ * @param {Boolean} [options.Show] 显示隐藏
+ */
+function BMEditEntityTextLabel(lableID,options)
+{
+    var findEntity =  BMGolbe.viewer.entities.getById(lableID);
+    if(!Cesium.defined(findEntity) || !Cesium.defined(findEntity.label)) return;
+    //
+    if(Cesium.defined(options.Pos_longitude) && Cesium.defined(options.Pos_latitude) && Cesium.defined(options.Pos_height))
+    {
+        var newPos =  new Cesium.ConstantPositionProperty(Cesium.Cartesian3.fromDegrees(options.Pos_longitude, options.Pos_latitude, options.Pos_height));
+        findEntity.position = newPos;
+    }
+    //
+    if(Cesium.defined(options.colorR) && Cesium.defined(options.colorG) && Cesium.defined(options.colorB) && Cesium.defined(options.colorA))
+    {
+        var newColor = new Cesium.Color(options.colorR,options.colorG,options.colorB,options.colorA);
+        findEntity.label.fillColor = newColor; 
+    }
+    //
+    if(Cesium.defined(options.text))
+    {
+        findEntity.label.text = options.text;
+    }
+    if(Cesium.defined(options.Show))
+    {
+        findEntity.show = options.Show;
+    }
+}
+/** 修改EntityImageLabel---修改标签位置、颜色、图片URL、显示隐藏
+ * @Fuction
+ * @param {String} lableID 标签ID  
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.colorR] 颜色[0-1] 默认白色
+ * @param {Number} [options.colorG] 颜色[0-1]
+ * @param {Number} [options.colorB] 颜色[0-1]
+ * @param {Number} [options.colorA] 颜色[0-1] 0完全透明
+ * @param {Number} [options.Pos_longitude] 经度（°）
+ * @param {Number} [options.Pos_latitude] 纬度（°）
+ * @param {Number} [options.Pos_height] 高度（m）
+ * @param {String} [options.imageURL] 图片
+ * @param {Boolean} [options.Show] 显示隐藏
+ */
+function BMEditEntityImageLabel(lableID,options)
+{
+    var findEntity =  BMGolbe.viewer.entities.getById(lableID);
+    if(!Cesium.defined(findEntity) || !Cesium.defined(findEntity.billboard)) return;
+    //
+    if(Cesium.defined(options.Pos_longitude) && Cesium.defined(options.Pos_latitude) && Cesium.defined(options.Pos_height))
+    {
+        var newPos =  new Cesium.ConstantPositionProperty(Cesium.Cartesian3.fromDegrees(options.Pos_longitude, options.Pos_latitude, options.Pos_height));
+        findEntity.position = newPos;
+    }
+    //
+    if(Cesium.defined(options.colorR) && Cesium.defined(options.colorG) && Cesium.defined(options.colorB) && Cesium.defined(options.colorA))
+    {
+        var newColor = new Cesium.Color(options.colorR,options.colorG,options.colorB,options.colorA);
+        findEntity.billboard.color = newColor; 
+    }
+    //
+    if(Cesium.defined(options.imageURL))
+    {
+        findEntity.billboard.image = options.imageURL;
+    }
+    if(Cesium.defined(options.Show))
+    {
+        findEntity.show = options.Show;
+    }
+}
+/** 删除标签
+ * @Fuction
+ * @param {String} lableID 标签ID  
+ */
+function BMDeleteEntityLabel(lableID)
+{
+    var findEntity =  BMGolbe.viewer.entities.getById(lableID);
+    if(!Cesium.defined(findEntity)) return;
+    var index = GetArrayElementIndex(BMGolbe.TextLabelEntites,findEntity);
+    if(index !== -1)
+    {
+        BMGolbe.TextLabelEntites.splice(index,1);
+    }
+    else
+    {
+        index = GetArrayElementIndex(BMGolbe.ImageLabelEntites,findEntity);
+        BMGolbe.ImageLabelEntites.splice(index,1);
+    }
+    //
+    BMGolbe.viewer.entities.remove(findEntity);
+}
+/** 删除所有标签
+ * @Fuction
+ * @param {Number} labelType 0图片标签、1文本标签、2both
+ */
+function BMDeleteAllEntityLabel(labelType)
+{
+    BMGolbe.viewer.entities.suspendEvents();
+    var i=0;
+    switch(labelType)
+    {
+    case 0:
+        for(i=0;i<BMGolbe.ImageLabelEntites.length;++i)
+        {
+            BMGolbe.viewer.entities.remove(BMGolbe.ImageLabelEntites[i]);
+        }
+        BMGolbe.ImageLabelEntites.splice(0,BMGolbe.ImageLabelEntites.length);
+        break;
+    case 1:
+        for(i=0;i<BMGolbe.TextLabelEntites.length;++i)
+        {
+            BMGolbe.viewer.entities.remove(BMGolbe.TextLabelEntites[i]);
+        }
+        BMGolbe.TextLabelEntites.splice(0,BMGolbe.TextLabelEntites.length);
+        break;
+    case 2:
+        for(i=0;i<BMGolbe.ImageLabelEntites.length;++i)
+        {
+            BMGolbe.viewer.entities.remove(BMGolbe.ImageLabelEntites[i]);
+        }
+        BMGolbe.ImageLabelEntites.splice(0,BMGolbe.ImageLabelEntites.length);
+        //
+        for(i=0;i<BMGolbe.TextLabelEntites.length;++i)
+        {
+            BMGolbe.viewer.entities.remove(BMGolbe.TextLabelEntites[i]);
+        }
+        BMGolbe.TextLabelEntites.splice(0,BMGolbe.TextLabelEntites.length);
+        break;
+    }
+    //
+    BMGolbe.viewer.entities.resumeEvents();
+}
+/** 显示\隐藏 所有标签
+ * @Fuction
+ * @param {Number} labelType 0图片标签、1文本标签、2both
+ * @param {Boolean} Show 显示隐藏
+ */
+function BMVisibleAllEntityLabel(labelType,Show)
+{
+    switch(labelType)
+    {
+    case 0:
+        BMGolbe.ImageLabelRoot.show = Show;
+        break;
+    case 1:
+        BMGolbe.TextLabelRoot.show = Show;
+        break;
+    case 2:
+        BMGolbe.ImageLabelRoot.show = Show;
+        BMGolbe.TextLabelRoot.show = Show;
+        break;
+    }
+}
+/** 设置鼠标单击  图标标签 事件回调函数
+ * @Fuction
+ * @param {Function} listener  ---函数参数为 选中的图片标签ID String
+ */
+function BMSetMouseLeftClickImageLabelEventListener(listener) {
+
+    BMGolbe.ClickImageLabelEvent.addEventListener(listener);
+}
+/** 设置鼠标单击  文字标签 事件回调函数
+ * @Fuction
+ * @param {Function} listener  ---函数参数为 选中的文字标签ID String
+ */
+function BMSetMouseLeftClickTextLabelEventListener(listener) {
+
+    BMGolbe.ClickTextLabelEvent.addEventListener(listener);
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //private
@@ -1237,5 +1436,21 @@ function UnSelectAll3DTileSetSelectNodes()
         var guid = BMGolbe.SelectTileFeature.getProperty('name'); 
         BMGolbe.UnSelect3DTileNodeEvent.raiseEvent(guid);
     }
+}
+/*获取数组index
+*/
+function GetArrayElementIndex(arr,value)
+{
+    var index = -1;
+    for(var i=0;i<arr.length;++i)
+    {
+        if(arr[i] === value)
+        {
+            index = i;
+            break;
+        }
+    }
+    //
+    return index;
 }
 

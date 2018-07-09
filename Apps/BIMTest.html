@@ -62,22 +62,34 @@
   <button onclick="ShowRoamingLine()">显示路径线</button>
   <button onclick="HideRoamingLine()">隐藏路径线</button>
 </div>
+<div >
+  <button onclick="AddEntityTextLabel()">添加文字标签</button>
+  <button onclick="EditEntityTextLabel()">修改文字标签</button>
+  <button onclick="AddEntityImageLabel()">添加图片标签</button>
+  <button onclick="EditEntityImageLabel()">修改图片标签</button>
+  <button onclick="DeleteLabel()">删除标签</button>
+  <button onclick="DeleteAllLabel()">删除所有标签</button>
+  <button onclick="HideAllLabel()">隐藏所有标签</button>
+  <button onclick="ShowAllLabel()">显示所有标签</button>
+  <button onclick="SetSingleClickSelectImageLabelListener()">设置选中图片标签回调</button>
+  <button onclick="SetSingleClickSelectTextLabelListener()">设置选中文字标签回调</button>
+</div>
 
 <div id="cesiumContainer"></div>
 <script src="BMCore/Core.js"></script>
 <script src="BMCore/BMInterface.js"></script>
 <script>
-  BMGIS_Init('cesiumContainer',{
-      BIMMode3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',
-      Terrain3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT_T/'
-      }) ;
   // BMGIS_Init('cesiumContainer',{
-  //   UseOnLineGlobalTerrain:false,
-  //   // HomeView_West:113.2002,
-  //   // HomeView_South:23.0645,
-  //   // HomeView_East:113.3807,
-  //   // HomeView_North:23.1790
-  // }) 
+  //     BIMMode3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',
+  //     Terrain3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT_T/'
+  //     }) ;
+  BMGIS_Init('cesiumContainer',{
+    UseOnLineGlobalTerrain:false,
+    // HomeView_West:113.2002,
+    // HomeView_South:23.0645,
+    // HomeView_East:113.3807,
+    // HomeView_North:23.1790
+  }) 
   //
   function PullingHeight(){
     BMGIS_Pulling3DTileHeight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',100);
@@ -213,6 +225,68 @@
   {
     BMGIS_AnnotationLayerVisibility(false);
   }
+  var textLabelID = "";
+  var imageLabelID = "";
+  function AddEntityTextLabel()
+  {
+    textLabelID = BMGIS_AddEntityTextLabel(113.2599, 23.1324,0,"文字标签") 
+  }
+  function EditEntityTextLabel()
+  {
+    BMGIS_EditEntityTextLabel(textLabelID,{
+      text:"修改后内容",
+      Pos_longitude:113.2599,
+      Pos_latitude:23.1524,
+      Pos_height:0,
+      colorR:1.0,
+      colorG:0.0,
+      colorB:0.0,
+      colorA:1.0,
+      Show:true
+    })
+  }
+  function AddEntityImageLabel()
+  {
+    imageLabelID = BMGIS_AddEntityImageLabel(113.2799, 23.1324,0,"./BMCore/TestImage/cesium_credit.png") 
+  }
+  function EditEntityImageLabel()
+  {
+    BMGIS_EditEntityImageLabel(imageLabelID,{
+      imageURL:"./BMCore/TestImage/google_earth_credit.png",
+      Pos_longitude:113.2799,
+      Pos_latitude:23.1524,
+      Pos_height:0,
+      colorR:1.0,
+      colorG:0.0,
+      colorB:0.0,
+      colorA:1.0,
+      Show:true
+    })
+  }
+  function DeleteLabel()
+  {
+    BMGIS_DeleteEntityLabel(imageLabelID);
+  }
+  function DeleteAllLabel()
+  {
+    BMGIS_DeleteAllEntityLabel(2);
+  }
+  function HideAllLabel()
+  {
+    BMGIS_VisibleAllEntityLabel(2,false);
+  }
+  function ShowAllLabel()
+  {
+    BMGIS_VisibleAllEntityLabel(2,true);
+  }
+  function SetSingleClickSelectImageLabelListener()
+  {
+    BMGIS_SetMouseLeftClickImageLabelEventListener(TempMouseLeftClickSelectImageLableListener);
+  }
+  function SetSingleClickSelectTextLabelListener()
+  {
+    BMGIS_SetMouseLeftClickTextLabelEventListener(TempMouseLeftClickSelectTextLableListener);
+  }
   /////////////////////////////////////////////
   function TempMouseLeftClickSelectNodeListener(guidStr)
   {
@@ -226,6 +300,15 @@
   {
     console.log("取消高亮");
   }
+  function TempMouseLeftClickSelectImageLableListener(labelID)
+  {
+    console.log("鼠标单击 图片标签被选中:" + labelID);
+  }
+  function TempMouseLeftClickSelectTextLableListener(labelID)
+  {
+    console.log("鼠标单击 文字标签被选中:" + labelID);
+  }
+
 </script>
 </body>
 </html>

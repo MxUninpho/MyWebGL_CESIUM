@@ -487,7 +487,7 @@ function BMGIS_AnnotationLayerVisibility(Visible)
     Visible = Cesium.defaultValue(Visible, true);
     BMAnnotationLayerVisibility(Visible);
 }
-/** 添加EntityImageLabel
+/** 添加 图片标签
  * @Fuction
  * @param {Number} Pos_longitude 经度（°） 
  * @param {Number} Pos_latitude 纬度（°）
@@ -526,7 +526,7 @@ function BMGIS_AddEntityImageLabel(Pos_longitude,Pos_latitude,Pos_height,imageUR
     //
     return BMAddEntityImageLabel(Pos_longitude,Pos_latitude,Pos_height,imageURL,options);
 }
-/** 添加EntityTextLabel
+/** 添加 文字标签
  * @Fuction
  * @param {Number} Pos_longitude 经度（°） 
  * @param {Number} Pos_latitude 纬度（°）
@@ -565,9 +565,9 @@ function BMGIS_AddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,text,opt
     options.minVisibleDis = Cesium.defaultValue(options.minVisibleDis, 1.0);
     options.maxVisibleDis = Cesium.defaultValue(options.maxVisibleDis, 2e6);
     //
-    return BMAddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,imageURL,width,height,options);
+    return BMAddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,text,options);
 }
-/** 修改EntityTextLabel---修改标签位置、颜色、文字内容、显示隐藏
+/** 修改 文字标签---修改标签位置、颜色、文字内容、显示隐藏
  * @Fuction
  * @param {String} lableID 标签ID  
  * @param {Object} [options] 配置选项
@@ -575,26 +575,41 @@ function BMGIS_AddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,text,opt
  * @param {Number} [options.colorG] 颜色[0-1]
  * @param {Number} [options.colorB] 颜色[0-1]
  * @param {Number} [options.colorA] 颜色[0-1] 0完全透明
- * @param {Number} [options.Pos_latitude] 经度（°）
- * @param {Number} [options.Pos_height] 纬度（°）
+ * @param {Number} [options.Pos_longitude] 经度（°）
+ * @param {Number} [options.Pos_latitude] 纬度（°）
  * @param {Number} [options.Pos_height] 高度（m）
- * @param {String} [options.text] 显示
- * @param {Boolean} [options.Show] 文字内容
+ * @param {String} [options.text] 文字内容
+ * @param {Boolean} [options.Show] 显示隐藏
  * 
  * @example
  * 
  * BMGIS_EditEntityTextLabel("IDDDDDDDDDDDD",{
    text:"修改后内容"
   }) 
+ * BMGIS_EditEntityTextLabel("IDDDDDDDDDDDD",{
+    Pos_longitude:102
+    Pos_latitude:20,
+    Pos_height:10
+  }) 
+ * BMGIS_EditEntityTextLabel("IDDDDDDDDDDDD",{
+    colorR:1.0
+    colorG:0.0,
+    colorB:0.0,
+    colorA:1.0
+  }) 
+ * BMGIS_EditEntityTextLabel("IDDDDDDDDDDDD",{
+    Show:false
+  }) 
  */
 function BMGIS_EditEntityTextLabel(lableID,options)
 {
     lableID = Cesium.defaultValue(lableID, "");
     if(lableID === "") return;
+    options = Cesium.defaultValue(options, {});
     //
     BMEditEntityTextLabel(lableID,options);
 }
-/** 修改EntityImageLabel---修改标签位置、颜色、图片、显示隐藏
+/** 修改 图片标签---修改标签位置、颜色、图片URL、显示隐藏
  * @Fuction
  * @param {String} lableID 标签ID  
  * @param {Object} [options] 配置选项
@@ -602,24 +617,108 @@ function BMGIS_EditEntityTextLabel(lableID,options)
  * @param {Number} [options.colorG] 颜色[0-1]
  * @param {Number} [options.colorB] 颜色[0-1]
  * @param {Number} [options.colorA] 颜色[0-1] 0完全透明
- * @param {Number} [options.Pos_latitude] 经度（°）
- * @param {Number} [options.Pos_height] 纬度（°）
+ * @param {Number} [options.Pos_longitude] 经度（°）
+ * @param {Number} [options.Pos_latitude] 纬度（°）
  * @param {Number} [options.Pos_height] 高度（m）
- * @param {String} [options.imageURL] 显示
- * @param {Boolean} [options.Show] 文字内容
+ * @param {String} [options.imageURL] 图片
+ * @param {Boolean} [options.Show] 显示隐藏
  * 
  * @example
  * 
- * BMGIS_EditEntityTextLabel("IDDDDDDDDDDDD",{
-   text:"修改后内容"
+ * BMGIS_EditEntityImageLabel("IDDDDDDDDDDDD",{
+   imageURL:"./TestImage/google_earth_credit.png"
+  }) 
+ * BMGIS_EditEntityImageLabel("IDDDDDDDDDDDD",{
+    Pos_longitude:102
+    Pos_latitude:20,
+    Pos_height:10
+  }) 
+ * BMGIS_EditEntityImageLabel("IDDDDDDDDDDDD",{
+    colorR:1.0
+    colorG:0.0,
+    colorB:0.0,
+    colorA:1.0
+  }) 
+ * BMGIS_EditEntityImageLabel("IDDDDDDDDDDDD",{
+    Show:false
   }) 
  */
-function BMGIS_EditEntityTextLabel(lableID,options)
+function BMGIS_EditEntityImageLabel(lableID,options)
+{
+    lableID = Cesium.defaultValue(lableID, "");
+    if(lableID === "") return;
+    options = Cesium.defaultValue(options, {});
+    //
+    BMEditEntityImageLabel(lableID,options);
+}
+/** 删除标签
+ * @Fuction
+ * @param {String} lableID 标签ID  
+ * 
+ * @example
+ * 
+ * BMGIS_DeleteEntityLabel("IDDDDDDDDDDDD") 
+ */
+function BMGIS_DeleteEntityLabel(lableID)
 {
     lableID = Cesium.defaultValue(lableID, "");
     if(lableID === "") return;
     //
-    BMEditEntityTextLabel(lableID,options);
+    BMDeleteEntityLabel(lableID);
+}
+/** 删除所有标签
+ * @Fuction
+ * @param {Number} labelType 0图片标签、1文本标签、2both
+ * @example
+ * 
+ * BMGIS_DeleteAllEntityLabel(2) 
+ */
+function BMGIS_DeleteAllEntityLabel(labelType)
+{
+    if(labelType !== 0 && labelType !== 1 && labelType !== 2) return;
+    //
+    BMDeleteAllEntityLabel(labelType);
+}
+/** 显示\隐藏 所有标签
+ * @Fuction
+ * @param {Number} labelType 0图片标签、1文本标签、2both
+ * @param {Boolean} Show 显示隐藏
+ * @example
+ * 
+ * BMGIS_VisibleAllEntityLabel(2,false) 
+ */
+function BMGIS_VisibleAllEntityLabel(labelType,Show)
+{
+    if(labelType !== 0 && labelType !== 1 && labelType !== 2) return;
+    Show = Cesium.defaultValue(Show, true);
+    //
+    BMVisibleAllEntityLabel(labelType,Show);
+}
+/** 设置鼠标单击  图标标签 事件回调函数
+ * @Fuction
+ * @param {Function} listener  ---函数参数为 选中的图片标签ID String
+ * @example
+ * 
+ * BMGIS_SetMouseLeftClickImageLabelEventListener(listener) 
+ */
+function BMGIS_SetMouseLeftClickImageLabelEventListener(listener) {
+
+    if (typeof listener !== 'function') return;
+    //
+    BMSetMouseLeftClickImageLabelEventListener(listener);
+}
+/** 设置鼠标单击  文字标签 事件回调函数
+ * @Fuction
+ * @param {Function} listener  ---函数参数为 选中的文字标签ID String
+ * @example
+ * 
+ * BMGIS_SetMouseLeftClickTextLabelEventListener(listener) 
+ */
+function BMGIS_SetMouseLeftClickTextLabelEventListener(listener) {
+
+    if (typeof listener !== 'function') return;
+    //
+    BMSetMouseLeftClickTextLabelEventListener(listener);
 }
 
 
