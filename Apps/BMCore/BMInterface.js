@@ -475,6 +475,41 @@ function BMGIS_SetRoamingLineVisibility(LineVisible)
     LineVisible = Cesium.defaultValue(LineVisible, true);
     BMSetRoamingLineVisibility(LineVisible);
 }
+/** 获取 漫游位置偏移
+ * @Fuction
+ * @returns {Number} 
+ */
+function BMGIS_GetRoamingPosiOffset()
+{
+    return BMGetRoamingPosiOffset();
+}
+/** 设置 漫游位置偏移
+ * @Fuction
+ * @param {Number} newOffset
+ */
+function BMGIS_SetRoamingPosiOffset(newOffset)
+{
+    newOffset = Cesium.defaultValue(newOffset, 0);
+    BMSetRoamingPosiOffset(newOffset);
+}
+/** 获取 漫游视线偏移
+ * @Fuction
+ * @returns {Number} 
+ */
+function BMGIS_GetRoamingEyeAngleOffset()
+{
+    return BMGetRoamingEyeAngleOffset();
+}
+/** 设置 漫游视线偏移
+ * @Fuction
+ * @param {Number} newOffset  -90度 至 90度 
+ */
+function BMGIS_SetRoamingEyeAngleOffset(newOffset)
+{
+    newOffset = Cesium.defaultValue(newOffset, 0);
+    if(newOffset >= 90 || newOffset <= -90) return;
+    BMSetRoamingEyeAngleOffset(newOffset);
+}
 /** 显示\隐藏 影像路网标注图层
  * @Fuction
  * @param {Boolean} Visible = true 
@@ -487,7 +522,7 @@ function BMGIS_AnnotationLayerVisibility(Visible)
     Visible = Cesium.defaultValue(Visible, true);
     BMAnnotationLayerVisibility(Visible);
 }
-/** 添加 图片标签
+/** 添加 场景图片标签
  * @Fuction
  * @param {Number} Pos_longitude 经度（°） 
  * @param {Number} Pos_latitude 纬度（°）
@@ -526,7 +561,7 @@ function BMGIS_AddEntityImageLabel(Pos_longitude,Pos_latitude,Pos_height,imageUR
     //
     return BMAddEntityImageLabel(Pos_longitude,Pos_latitude,Pos_height,imageURL,options);
 }
-/** 添加 文字标签
+/** 添加 场景文字标签
  * @Fuction
  * @param {Number} Pos_longitude 经度（°） 
  * @param {Number} Pos_latitude 纬度（°）
@@ -567,7 +602,7 @@ function BMGIS_AddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,text,opt
     //
     return BMAddEntityTextLabel(Pos_longitude,Pos_latitude,Pos_height,text,options);
 }
-/** 修改 文字标签---修改标签位置、颜色、文字内容、显示隐藏
+/** 修改 场景文字标签---修改标签位置、颜色、文字内容、显示隐藏
  * @Fuction
  * @param {String} lableID 标签ID  
  * @param {Object} [options] 配置选项
@@ -609,7 +644,7 @@ function BMGIS_EditEntityTextLabel(lableID,options)
     //
     BMEditEntityTextLabel(lableID,options);
 }
-/** 修改 图片标签---修改标签位置、颜色、图片URL、显示隐藏
+/** 修改 场景图片标签---修改标签位置、颜色、图片URL、显示隐藏
  * @Fuction
  * @param {String} lableID 标签ID  
  * @param {Object} [options] 配置选项
@@ -651,7 +686,7 @@ function BMGIS_EditEntityImageLabel(lableID,options)
     //
     BMEditEntityImageLabel(lableID,options);
 }
-/** 删除标签
+/** 删除 场景标签
  * @Fuction
  * @param {String} lableID 标签ID  
  * 
@@ -666,7 +701,7 @@ function BMGIS_DeleteEntityLabel(lableID)
     //
     BMDeleteEntityLabel(lableID);
 }
-/** 删除所有标签
+/** 删除 所有场景标签
  * @Fuction
  * @param {Number} labelType 0图片标签、1文本标签、2both
  * @example
@@ -679,7 +714,7 @@ function BMGIS_DeleteAllEntityLabel(labelType)
     //
     BMDeleteAllEntityLabel(labelType);
 }
-/** 显示\隐藏 所有标签
+/** 显示\隐藏 所有场景标签
  * @Fuction
  * @param {Number} labelType 0图片标签、1文本标签、2both
  * @param {Boolean} Show 显示隐藏
@@ -694,7 +729,7 @@ function BMGIS_VisibleAllEntityLabel(labelType,Show)
     //
     BMVisibleAllEntityLabel(labelType,Show);
 }
-/** 设置鼠标单击  图标标签 事件回调函数
+/** 设置鼠标单击  场景图标标签 事件回调函数
  * @Fuction
  * @param {Function} listener  ---函数参数为 选中的图片标签ID String
  * @example
@@ -707,7 +742,7 @@ function BMGIS_SetMouseLeftClickImageLabelEventListener(listener) {
     //
     BMSetMouseLeftClickImageLabelEventListener(listener);
 }
-/** 设置鼠标单击  文字标签 事件回调函数
+/** 设置鼠标单击  场景文字标签 事件回调函数
  * @Fuction
  * @param {Function} listener  ---函数参数为 选中的文字标签ID String
  * @example
@@ -720,7 +755,25 @@ function BMGIS_SetMouseLeftClickTextLabelEventListener(listener) {
     //
     BMSetMouseLeftClickTextLabelEventListener(listener);
 }
-
+/** 添加 DIV标签
+ * @Fuction
+ * @param {Number} Pos_longitude 经度（°） 
+ * @param {Number} Pos_latitude 纬度（°）
+ * @param {Number} Pos_height 高度（m）
+ * 
+ * @returns {DOM} DIVElement
+ * @example
+ * 
+ * BMGIS_AddDIVLabel(113.2599, 23.1324,10) 
+ */
+function BMGIS_AddDIVLabel(Pos_longitude,Pos_latitude,Pos_height)
+{
+    if (typeof Pos_longitude !== 'number') return null;
+    if (typeof Pos_latitude !== 'number') return null;
+    if (typeof Pos_height !== 'number') return null;
+    //
+    return BMAddDIVLabel(Pos_longitude,Pos_latitude,Pos_height);
+}
 
 
 

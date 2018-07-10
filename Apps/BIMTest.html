@@ -60,19 +60,26 @@
   <button onclick="DecelerateRoaming()">减速</button>
   <button onclick="StopRoaming()">停止.删除(停止后需重新添加 BMGIS_Roaming)</button>
   <button onclick="ShowRoamingLine()">显示路径线</button>
-  <button onclick="HideRoamingLine()">隐藏路径线</button>
+  <button onclick="HideRoamingLine()">隐藏路径线(默认隐藏)</button>
+  <button onclick="AdjustPosOffset(this)">增加人高：0.0 m</button>
+  <button onclick="AdjustPosOffset1(this)">降低人高：0.0 m</button>
+  <button onclick="AdjustEyeAngleOffset(this)">抬高视线：0.0 °</button>
+  <button onclick="AdjustEyeAngleOffset1(this)">压低视线：0.0 °</button>
 </div>
 <div >
-  <button onclick="AddEntityTextLabel()">添加文字标签</button>
-  <button onclick="EditEntityTextLabel()">修改文字标签</button>
-  <button onclick="AddEntityImageLabel()">添加图片标签</button>
-  <button onclick="EditEntityImageLabel()">修改图片标签</button>
-  <button onclick="DeleteLabel()">删除标签</button>
-  <button onclick="DeleteAllLabel()">删除所有标签</button>
-  <button onclick="HideAllLabel()">隐藏所有标签</button>
-  <button onclick="ShowAllLabel()">显示所有标签</button>
-  <button onclick="SetSingleClickSelectImageLabelListener()">设置选中图片标签回调</button>
-  <button onclick="SetSingleClickSelectTextLabelListener()">设置选中文字标签回调</button>
+  <button onclick="AddEntityTextLabel()">添加 场景文字标签</button>
+  <button onclick="EditEntityTextLabel()">修改 场景文字标签</button>
+  <button onclick="AddEntityImageLabel()">添加 场景图片标签</button>
+  <button onclick="EditEntityImageLabel()">修改 场景图片标签</button>
+  <button onclick="DeleteLabel()">删除 场景标签</button>
+  <button onclick="DeleteAllLabel()">删除 所有场景标签</button>
+  <button onclick="HideAllLabel()">隐藏 所有场景标签</button>
+  <button onclick="ShowAllLabel()">显示 所有场景标签</button>
+  <button onclick="SetSingleClickSelectImageLabelListener()">设置单击 场景图片标签回调</button>
+  <button onclick="SetSingleClickSelectTextLabelListener()">设置单击 场景文字标签回调</button>
+  <button >==</button>
+  <button onclick="AddDIVLabel()">添加 DIV标签</button>
+  <button onclick="DeleteDIVLabel()">删除（测试） DIV标签</button>
 </div>
 
 <div id="cesiumContainer"></div>
@@ -221,6 +228,38 @@
   {
     BMGIS_SetRoamingLineVisibility(false);
   }
+  function AdjustPosOffset(dom)
+  {
+      var oldOffset = BMGIS_GetRoamingPosiOffset();
+      var newOffset = oldOffset + 1;
+      BMGIS_SetRoamingPosiOffset(newOffset);
+      //调整人高：0.0 m
+      dom.innerHTML = "增加人高：" + newOffset.toFixed(1) + " m";
+  }
+  function AdjustPosOffset1(dom)
+  {
+      var oldOffset = BMGIS_GetRoamingPosiOffset();
+      var newOffset = oldOffset - 1;
+      BMGIS_SetRoamingPosiOffset(newOffset);
+      //调整人高：0.0 m
+      dom.innerHTML = "降低人高：" + newOffset.toFixed(1) + " m";
+  }
+  function AdjustEyeAngleOffset(dom)
+  {
+    var oldOffset = BMGIS_GetRoamingEyeAngleOffset();
+    var newOffset = oldOffset + 1;
+    BMGIS_SetRoamingEyeAngleOffset(newOffset);
+    //调整视线：0.0 °
+    dom.innerHTML = "抬高视线：" + newOffset.toFixed(1) + " °";
+  }
+  function AdjustEyeAngleOffset1(dom)
+  {
+    var oldOffset = BMGIS_GetRoamingEyeAngleOffset();
+    var newOffset = oldOffset - 1;
+    BMGIS_SetRoamingEyeAngleOffset(newOffset);
+    //调整视线：0.0 °
+    dom.innerHTML = "压低视线：" + newOffset.toFixed(1) + " °";
+  }
   function HideLableImageLayer()
   {
     BMGIS_AnnotationLayerVisibility(false);
@@ -286,6 +325,23 @@
   function SetSingleClickSelectTextLabelListener()
   {
     BMGIS_SetMouseLeftClickTextLabelEventListener(TempMouseLeftClickSelectTextLableListener);
+  }
+  var divDom = undefined;
+  var divNum = 0;
+  function AddDIVLabel()
+  {
+    divDom = BMGIS_AddDIVLabel(113.2599, 23.1524,0); 
+    divDom.innerHTML = "DIV标签" + divNum.toString();
+    divDom.style.cssText = "color:Yellow;position:absolute;z-index:5;margin:0;padding:0"; 
+    divNum ++;
+  }
+  function DeleteDIVLabel()
+  {
+    if(divDom !== undefined)
+    {
+      divDom.parentNode.removeChild(divDom); 
+      divDom = undefined; 
+    }
   }
   /////////////////////////////////////////////
   function TempMouseLeftClickSelectNodeListener(guidStr)

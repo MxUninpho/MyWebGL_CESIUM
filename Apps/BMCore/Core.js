@@ -91,8 +91,10 @@ BMGolbe.SelectColor = new Cesium.Color(1.0,0.0,0.0,1.0);
 BMGolbe.RoamingPositionProperty = undefined;
 BMGolbe.IsRoaming = false;
 BMGolbe.RoamingLineEntity = undefined;
-BMGolbe.RoamingLineVisible = true;
+BMGolbe.RoamingLineVisible = false;
 BMGolbe.RoamingLineMaterialGlow = new Cesium.PolylineGlowMaterialProperty({ glowPower : 0.5,color : Cesium.Color.PALETURQUOISE });
+BMGolbe.RoamingPositionOffset = 0.0;
+BMGolbe.RoamingEyeOffsetAngle = 0.0;
 //图片标签根节点
 BMGolbe.ImageLabelRoot = new Cesium.Entity();
 BMGolbe.ImageLabelEntites = [];
@@ -102,8 +104,13 @@ BMGolbe.TextLabelRoot = new Cesium.Entity();
 BMGolbe.TextLabelEntites = [];
 BMGolbe.ClickTextLabelEvent = new Cesium.Event();
 BMGolbe.LabelPixelOffset = new Cesium.Cartesian2(0,-5);
+//DIV标签
+BMGolbe.DIVLabelIDs = [];
+BMGolbe.DIVLabelPoss = [];
+BMGolbe.BMGISRootDOM = undefined;
 //
 BMGolbe.scratchCartesianPt = new Cesium.Cartesian3(0, 0,0);
+BMGolbe.scratchCartesian2Pt = new Cesium.Cartesian2();
 BMGolbe.scratchCartographicPt = new Cesium.Cartographic(0, 0,0);
 //
 function createModel(url, height) {
@@ -209,13 +216,14 @@ function BMInit(container,options)
     lonEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:25%;bottom:0.5%;position:absolute;z-index:2"; 
     var latEle = document.createElement('div');
     latEle.innerHTML = '纬度：<span id="latitude_show"></span>';
-    latEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:50%;bottom:0.5%;position:absolute;z-index:3"; 
+    latEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:50%;bottom:0.5%;position:absolute;z-index:2"; 
     var altEle = document.createElement('div');
     altEle.innerHTML = '视角高：<span id="altitude_show"></span>';
-    altEle.style.cssText = "color:Yellow;width:240px;height:30px;float:left;left:75%;bottom:0.5%;position:absolute;z-index:4"; 
+    altEle.style.cssText = "color:Yellow;width:240px;height:30px;float:left;left:75%;bottom:0.5%;position:absolute;z-index:2"; 
     rootDOM.appendChild(lonEle);
     rootDOM.appendChild(latEle);
     rootDOM.appendChild(altEle);
+    BMGolbe.BMGISRootDOM =rootDOM; 
     //
     var longitude_show=document.getElementById('longitude_show');
     var latitude_show=document.getElementById('latitude_show');
@@ -325,13 +333,42 @@ function BMInit(container,options)
             _scratchDirection = Cesium.Cartesian3.normalize(_scratchDirection,_scratchDirection);
             _scratchUp = ellipsoid.geocentricSurfaceNormal(currentPosition,_scratchUp);
             //
-            Cesium.Cartographic.fromCartesian(currentPosition,Cesium.Ellipsoid.WGS84,BMGolbe.scratchCartographicPt);
-            BMGolbe.scratchCartographicPt.height += 10;
-            Cesium.Cartesian3.fromRadians(BMGolbe.scratchCartographicPt.longitude,BMGolbe.scratchCartographicPt.latitude,BMGolbe.scratchCartographicPt.height,Cesium.Ellipsoid.WGS84,currentPosition);
+            if(BMGolbe.RoamingPositionOffset !== 0.0)
+            {
+                Cesium.Cartographic.fromCartesian(currentPosition,Cesium.Ellipsoid.WGS84,BMGolbe.scratchCartographicPt);
+                BMGolbe.scratchCartographicPt.height += BMGolbe.RoamingPositionOffset;
+                Cesium.Cartesian3.fromRadians(BMGolbe.scratchCartographicPt.longitude,BMGolbe.scratchCartographicPt.latitude,BMGolbe.scratchCartographicPt.height,Cesium.Ellipsoid.WGS84,currentPosition);
+            }
             //
             camera.position = currentPosition; 
             camera.direction =  _scratchDirection;
             camera.up = _scratchUp;
+            //
+            if(BMGolbe.RoamingEyeOffsetAngle !== 0.0)
+            {
+                camera.lookUp(Cesium.Math.toRadians(BMGolbe.RoamingEyeOffsetAngle));
+            }
+        }
+    });
+    //
+    var i = 0;
+    BMGolbe.viewer.scene.preRender.addEventListener(function() {
+        var rootTop = BMGolbe.BMGISRootDOM.offsetTop+document.body.scrollTop;
+        var rootLeft = BMGolbe.BMGISRootDOM.offsetLeft;
+        for(i=0;i<BMGolbe.DIVLabelIDs.length;++i)
+        {
+            var DIVPosition = BMGolbe.DIVLabelPoss[i];
+            var DIVID = BMGolbe.DIVLabelIDs[i];
+            var htmlOverlay = document.getElementById(DIVID);
+            if (Cesium.defined(htmlOverlay))
+            {
+                var canvasPosition = BMGolbe.viewer.scene.cartesianToCanvasCoordinates(DIVPosition, BMGolbe.scratchCartesian2Pt);
+                if (Cesium.defined(canvasPosition)) 
+                {
+                    htmlOverlay.style.top = canvasPosition.y + rootTop+ 'px';
+                    htmlOverlay.style.left = canvasPosition.x + rootLeft+ 'px';
+                }
+            }
         }
     });
     ////
@@ -878,6 +915,38 @@ function BMSetRoamingLineVisibility(LineVisible)
     if(BMGolbe.RoamingLineEntity !== undefined)
         BMGolbe.RoamingLineEntity.show = LineVisible;
 }
+/** 获取 漫游位置偏移
+ * @Fuction
+ * @returns {Number} 
+ */
+function BMGetRoamingPosiOffset()
+{
+    return BMGolbe.RoamingPositionOffset;
+}
+/** 设置 漫游位置偏移
+ * @Fuction
+ * @returns {Number} 
+ */
+function BMSetRoamingPosiOffset(newOffset)
+{
+    BMGolbe.RoamingPositionOffset = newOffset;
+}
+/** 获取 漫游视线偏移
+ * @Fuction
+ * @param {Number} newOffset
+ */
+function BMGetRoamingEyeAngleOffset()
+{
+    return BMGolbe.RoamingEyeOffsetAngle;
+}
+/** 设置 漫游视线偏移
+ * @Fuction
+ * @returns {Number} 
+ */
+function BMSetRoamingEyeAngleOffset(newOffset)
+{
+    BMGolbe.RoamingEyeOffsetAngle = newOffset;
+}
 /** 显示\隐藏 影像路网标注图层
  * @Fuction
  * @param {Boolean} Visible = true 
@@ -1154,6 +1223,26 @@ function BMSetMouseLeftClickImageLabelEventListener(listener) {
 function BMSetMouseLeftClickTextLabelEventListener(listener) {
 
     BMGolbe.ClickTextLabelEvent.addEventListener(listener);
+}
+/** 添加 DIV标签
+ * @Fuction
+ * @param {Number} Pos_longitude 经度（°） 
+ * @param {Number} Pos_latitude 纬度（°）
+ * @param {Number} Pos_height 高度（m）
+ */
+function BMAddDIVLabel(Pos_longitude,Pos_latitude,Pos_height)
+{
+    var num = BMGolbe.DIVLabelIDs.length;
+    var newDIV = document.createElement('div');
+    newDIV.id = "_BMInnerDIV" + num.toString();
+    newDIV.style.cssText = "position:absolute;z-index:5"; 
+    BMGolbe.BMGISRootDOM.appendChild(newDIV);
+    //
+    var position = Cesium.Cartesian3.fromDegrees(Pos_longitude, Pos_latitude,Pos_height);
+    BMGolbe.DIVLabelIDs.push(newDIV.id);
+    BMGolbe.DIVLabelPoss.push(position);
+    //
+    return newDIV;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //private
