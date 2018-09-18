@@ -18,6 +18,8 @@ var glslStripComments = require('glsl-strip-comments');
 var mkdirp = require('mkdirp');
 var eventStream = require('event-stream');
 var gulp = require('gulp');
+var gulp_uglify = require('gulp-uglify');
+var javascriptObfuscator = require('gulp-javascript-obfuscator');
 var gulpInsert = require('gulp-insert');
 var gulpZip = require('gulp-zip');
 var gulpRename = require('gulp-rename');
@@ -123,6 +125,14 @@ gulp.task('build', function(done) {
 
 gulp.task('build-watch', function() {
     gulp.watch(buildFiles, ['build']);
+});
+
+
+gulp.task('build_myjs',function () {
+    gulp.src(['Apps/BMCore/Core.js','Apps/BMCore/Test.js']) //多个文件以数组形式传入
+        .pipe(gulp_uglify({mangle:{eval:true,toplevel: true,keep_fnames:true}}))
+        .pipe(javascriptObfuscator())
+        .pipe(gulp.dest('Apps/BMCore_s'));
 });
 
 gulp.task('buildApps', function() {

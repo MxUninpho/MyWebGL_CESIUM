@@ -30,6 +30,7 @@
     "email": "cesium-dev@googlegroups.com"
   },
   "dependencies": {
+    "gulp-javascript-obfuscator": "^1.1.4",
     "requirejs": "^2.3.2"
   },
   "devDependencies": {
@@ -51,6 +52,7 @@
     "gulp-rename": "^1.2.2",
     "gulp-replace": "^0.6.1",
     "gulp-tap": "^1.0.1",
+    "gulp-uglify": "^3.0.1",
     "gulp-zip": "^4.0.0",
     "jasmine-core": "^3.1.0",
     "jsdoc": "^3.4.3",
@@ -72,6 +74,7 @@
     "yargs": "^11.0.0"
   },
   "scripts": {
+    "testJS": "gulp build_myjs",
     "start": "node server.js",
     "startPublic": "node server.js --public",
     "build": "gulp build",

@@ -755,6 +755,33 @@ function BMGIS_SetMouseLeftClickTextLabelEventListener(listener) {
     //
     BMSetMouseLeftClickTextLabelEventListener(listener);
 }
+/** 缩放至 场景标签  
+ * @Fuction
+ * @param {String} lableID 标签ID  
+ * @example
+ * 
+ * BMGIS_ZoomToEntityLabel("IDDDDDDDDDDDD")
+ */
+function BMGIS_ZoomToEntityLabel(lableID) {
+    lableID = Cesium.defaultValue(lableID, "");
+    if(lableID === "") return;
+    //
+    BMZoomToEntityLabel(lableID);
+}
+/** 闪烁场景标签
+ * @Fuction
+ * @param {String[]} lableIDs 标签ID---数组---
+ * @param {Number} duration 闪烁持续时间 毫秒  默认2000
+ * @example
+ * 
+ * BMGIS_GlintEntityLabels(["IDDDDDDDDDDDD","IDDDDDDDDDDDD"],2000)
+ */
+function BMGIS_GlintEntityLabels(lableIDs,duration) {
+    duration = Cesium.defaultValue(duration, 2000);
+    lableIDs = Cesium.defaultValue(lableIDs, []);
+    BMGlintEntityLabels(lableIDs,duration);
+}
+
 /** 添加 DIV标签
  * @Fuction
  * @param {Number} Pos_longitude 经度（°） 
@@ -774,6 +801,84 @@ function BMGIS_AddDIVLabel(Pos_longitude,Pos_latitude,Pos_height)
     //
     return BMAddDIVLabel(Pos_longitude,Pos_latitude,Pos_height);
 }
+/** 显示\隐藏 三维球体
+ * @Fuction
+ * @param {Boolean} Show 显示隐藏 
+ * @example
+ * 
+ * BMGIS_ShowGlobe(ture) 
+ */
+function BMGIS_ShowGlobe(Show)
+{
+    Show = Cesium.defaultValue(Show, true);
+    //
+    return BMShowGlobe(Show);
+}
+/** 设置地图类型---默认为 mapbox矢量地图
+ * @Fuction
+ * @param {Number} mapType :0 谷歌影像地图（无注记层）、1 mapbox矢量地图（含注记层）、2 天地图矢量地图（无注记层）
+ * @example
+ * 
+ * BMGIS_SetGlobeMapType(1) 
+ */
+function BMGIS_SetGlobeMapType(mapType)
+{
+    mapType = Cesium.defaultValue(mapType, 1);
+    //
+    return BMSetGlobeMapType(mapType);
+}
+/** 设置地图注记类型---默认为 空
+ * @Fuction
+ * @param {Number} labelType :0 天地图矢量注记、1 天地图影像注记、2 无附加注记图层---当底图为mapbox矢量地图时，不需要再附加注记图层
+ * @example
+ * 
+ * BMGIS_SetGlobeMapLabelType(2) 
+ */
+function BMGIS_SetGlobeMapLabelType(labelType)
+{
+    labelType = Cesium.defaultValue(labelType, 2);
+    //
+    return BMSetGlobeMapLabelType(labelType);
+}
+/** 修改图层样式
+ * @Fuction
+ * @param {Number} mapType 图层类型 ：0 底图图层、1 注记图层
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.alpha] 透明度[0-1] 1.0
+ * @param {Number} [options.brightness] 亮度[0-1] 1.0
+ * @param {Number} [options.contrast] 对比度[0-1] 1.0
+ * @param {Number} [options.hue] 色调[0-1] 0.0
+ * @param {Number} [options.saturation] 饱和度[0-1] 1.0
+ * @param {Number} [options.gammaCorrection] 灰度校正[0-1] 1.0
+ * @example
+ * 
+ * BMGIS_EditGlobeMapStyle(0,{
+ *  alpha:0.5,
+ *  brightness:0.5
+ * }) 
+ */
+function BMGIS_EditGlobeMapStyle(mapType,options)
+{
+    mapType = Cesium.defaultValue(mapType, 0);
+    options = Cesium.defaultValue(options, {});
+    //
+    BMEditGlobeMapStyle(mapType,options);
+}
+/** 设置操作类型 鼠标左键 双击返回默认操作（选择操作） 右键单击 重新测量
+ *  注意：测量时最好开启地下深度测试（BMGIS_DepthTestAgainstTerrain(ture)）,否则当使用在线全球地形时 测量地球表面（非模型覆盖区域）值高度错误
+ * @Fuction
+ * @param {Number} handerType 0选择(默认) 1坐标测量 2多线距离测量 3面积测量 4垂直距离测量
+ * @example
+ * 
+ * BMGIS_SetOperateHanderType(1)
+ */
+function BMGIS_SetOperateHanderType(handerType)
+{
+    handerType = Cesium.defaultValue(handerType, 0);
+    BMSetOperateHanderType(handerType);
+}
+
+
 
 
 

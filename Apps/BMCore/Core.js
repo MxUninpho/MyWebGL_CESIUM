@@ -47,19 +47,46 @@ function createGoogleMapsByUrl(Cesium,options) {
 }
 //顶层变量数据对象
 var BMGolbe = {};
-//谷歌影像图层
-BMGolbe.imageGooglemap = createGoogleMapsByUrl(Cesium,{url:"http://mt1.google.cn/vt/lyrs=s&hl=zh-CN&x={x}&y={y}&z={z}"});
-//天地图注记图层
-BMGolbe.imageLabel = new Cesium.WebMapTileServiceImageryProvider({
+//谷歌影像地图---不带注记
+BMGolbe.GoogleImageProvider = createGoogleMapsByUrl(Cesium,{url:"http://mt1.google.cn/vt/lyrs=s&hl=zh-CN&x={x}&y={y}&z={z}"});
+//Mapbox矢量地图---带注记---默认
+BMGolbe.MapboxMapProvider = new Cesium.MapboxImageryProvider({
+    mapId: 'mapbox.streets'
+});
+//天地图矢量地图---不带注记
+BMGolbe.TianDiTuMapProvider = new Cesium.WebMapTileServiceImageryProvider({
+    url : 'http://{s}.tianditu.com/vec_w/wmts?service=WMTS&version=1.0.0&request=GetTile&tilematrix={TileMatrix}&layer=vec&style=default&tilerow={TileRow}&tilecol={TileCol}&tilematrixset={TileMatrixSet}&format=tiles',
+    layer: "vec",
+    style: "default",
+    format: "tiles",
+    tileMatrixSetID: "w",
+    maximumLevel: 18,
+    subdomains : ['t0','t1','t2','t3','t4','t5','t6','t7']
+});
+//天地图影像注记图层
+BMGolbe.ImageLabelTianDiTuProvider = new Cesium.WebMapTileServiceImageryProvider({
         url : 'http://{s}.tianditu.com/cia_w/wmts?service=WMTS&version=1.0.0&request=GetTile&tilematrix={TileMatrix}&layer=cia&style={style}&tilerow={TileRow}&tilecol={TileCol}&tilematrixset={TileMatrixSet}&format=tiles',
         layer : 'cia',
         style : 'default',
         format : 'tiles',
         maximumLevel: 18,
         tileMatrixSetID : 'w',
-        credit : new Cesium.Credit('天地图全球影像中文注记服务'),
         subdomains : ['t0','t1','t2','t3','t4','t5','t6','t7']
     });
+//天地图矢量注记图层
+BMGolbe.MapLabelTianDiTuProvider = new Cesium.WebMapTileServiceImageryProvider({
+    url : 'http://{s}.tianditu.com/cva_w/wmts?service=WMTS&version=1.0.0&request=GetTile&tilematrix={TileMatrix}&layer=cva&style={style}&tilerow={TileRow}&tilecol={TileCol}&tilematrixset={TileMatrixSet}&format=tiles',
+    layer : 'cva',
+    style : 'default',
+    format : 'tiles',
+    maximumLevel: 18,
+    tileMatrixSetID : 'w',
+    subdomains : ['t0','t1','t2','t3','t4','t5','t6','t7']
+});
+//影像图层---默认为 BMGolbe.MapboxMapProvider
+BMGolbe.ImageLayer = undefined;
+//注记图层---默认为 空
+BMGolbe.LabelLayer = undefined;
 //cesium viewer 对象
 BMGolbe.viewer = undefined;
 //3DTiles集合
@@ -108,6 +135,21 @@ BMGolbe.LabelPixelOffset = new Cesium.Cartesian2(0,-5);
 BMGolbe.DIVLabelIDs = [];
 BMGolbe.DIVLabelPoss = [];
 BMGolbe.BMGISRootDOM = undefined;
+BMGolbe.GlintLabels = [];//闪烁的Div标签
+BMGolbe.BeginGlintDate = new Date();
+BMGolbe.Duration = 2000;
+BMGolbe.GlintColor = new Cesium.Color(1.0,0,0);
+//cesium操作器
+BMGolbe.PreventRotatUnderGoundHandler = undefined;//防止旋转至地下 操作器----默认打开
+BMGolbe.SelectHander = undefined;//选择 操作器-----默认打开
+BMGolbe.MeasurePointCoordinateHander = undefined;//点坐标测量 操作器
+BMGolbe.HanderType = 0;//操作类型  0选择 1坐标测量 2多线测量 3面积测量 4垂直距离测量
+BMGolbe.MeasureMultiLineLengthHander = undefined;//多段线长度测量 操作器
+BMGolbe.MeasureAreaHander = undefined;//面积测量 操作器
+BMGolbe.MeasureVerticalDistanceHander = undefined;//垂直距离测量 操作器 
+//Canvas DIV 设置光标用
+BMGolbe.CanvasContainerElement = undefined;
+
 //
 BMGolbe.scratchCartesianPt = new Cesium.Cartesian3(0, 0,0);
 BMGolbe.scratchCartesian2Pt = new Cesium.Cartesian2();
@@ -164,11 +206,13 @@ function BMInit(container,options)
     BMGolbe.viewer.scene.camera.flyTo({
         destination : BMGolbe.HomeViewRectangle
     });
+    //BMGolbe.viewer.scene.sun.show = false;
+    
     //
     var imageryLayers = BMGolbe.viewer.imageryLayers;
     BMGolbe.viewer.scene.globe.depthTestAgainstTerrain = false;
-    BMGolbe.imageGooglemap = imageryLayers.addImageryProvider(BMGolbe.imageGooglemap);
-    BMGolbe.imageLabel= imageryLayers.addImageryProvider(BMGolbe.imageLabel);
+   
+    BMGolbe.ImageLayer = imageryLayers.addImageryProvider(BMGolbe.MapboxMapProvider,1);
     //
     BMGolbe.viewer.scene.camera._suspendTerrainAdjustment = false;
     BMGolbe.viewer.cesiumWidget.creditContainer.style.display= "none";
@@ -199,6 +243,7 @@ function BMInit(container,options)
          tilesetT.originURL = options.Terrain3DTileURL;
          BMGolbe.BMTileSets.push(tilesetT);
          Set3DTileSetSelectVariables(tilesetT);
+         BMGolbe.viewer.zoomTo(tilesetT);
     }
     if(options.UseOnLineGlobalTerrain)
     {
@@ -216,10 +261,10 @@ function BMInit(container,options)
     lonEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:25%;bottom:0.5%;position:absolute;z-index:2"; 
     var latEle = document.createElement('div');
     latEle.innerHTML = '纬度：<span id="latitude_show"></span>';
-    latEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:50%;bottom:0.5%;position:absolute;z-index:2"; 
+    latEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:40%;bottom:0.5%;position:absolute;z-index:2"; 
     var altEle = document.createElement('div');
     altEle.innerHTML = '视角高：<span id="altitude_show"></span>';
-    altEle.style.cssText = "color:Yellow;width:240px;height:30px;float:left;left:75%;bottom:0.5%;position:absolute;z-index:2"; 
+    altEle.style.cssText = "color:Yellow;width:240px;height:30px;float:left;left:55%;bottom:0.5%;position:absolute;z-index:2"; 
     rootDOM.appendChild(lonEle);
     rootDOM.appendChild(latEle);
     rootDOM.appendChild(altEle);
@@ -230,81 +275,95 @@ function BMInit(container,options)
     var altitude_show=document.getElementById('altitude_show');
     var canvas=BMGolbe.viewer.scene.canvas;
     var ellipsoid=BMGolbe.viewer.scene.globe.ellipsoid;
-    //
-    var handler = new Cesium.ScreenSpaceEventHandler(canvas);
-    handler.setInputAction(function(movement){
-        var cartesian=BMGolbe.viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid);
-        if(cartesian){
-            var cartographic=BMGolbe.viewer.scene.globe.ellipsoid.cartesianToCartographic(cartesian);
-            var lat_String=Cesium.Math.toDegrees(cartographic.latitude).toFixed(8);
-            var log_String=Cesium.Math.toDegrees(cartographic.longitude).toFixed(8);
-            var alti_String=(BMGolbe.viewer.camera.positionCartographic.height/1000).toFixed(4);
+    //鼠标移动显示 鼠标位置与相机高度
+    BMGolbe.viewer.screenSpaceEventHandler.setInputAction(function(movement){
+        var cartesian=BMGolbe.viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid,BMGolbe.scratchCartesianPt);
+        if(cartesian)
+        {   
+            var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            var lat_String=Cesium.Math.toDegrees(cartographic.latitude).toFixed(5);
+            var log_String=Cesium.Math.toDegrees(cartographic.longitude).toFixed(5);
+            var alti_String=(BMGolbe.viewer.camera.positionCartographic.height/1000).toFixed(3);
             longitude_show.innerHTML=log_String + '\u00B0';
             latitude_show.innerHTML=lat_String + '\u00B0';
             altitude_show.innerHTML=alti_String + 'km';
         }
     },Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-    BMGolbe.viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
     BMGolbe.viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
     BMGolbe.viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
-    //
-    // BMGolbe.viewer.screenSpaceEventHandler.setInputAction(function onLeftClick(movement) {
-        
-    //     var cartesian=BMGolbe.viewer.camera.pickEllipsoid(movement.position);
-    //     if(cartesian){
-            
-    //         var cartographic=BMGolbe.viewer.scene.globe.ellipsoid.cartesianToCartographic(cartesian);
-            
-    //         var lat_String=Cesium.Math.toDegrees(cartographic.latitude);
-    //         var log_String=Cesium.Math.toDegrees(cartographic.longitude);
-    //         var alti_String=cartographic.height;
-    //         //
-    //         console.log(log_String+ "," + lat_String + "," + alti_String+ ",");
-    //     }
-    // },Cesium.ScreenSpaceEventType.LEFT_CLICK);
-    //
-
-    handler.setInputAction(function onLeftClick(movement) {
-        //
-        var pickedFeature = BMGolbe.viewer.scene.pick(movement.position);
-        if (!Cesium.defined(pickedFeature)) 
-        {
-            UnSelectAll3DTileSetSelectNodes();
-            return;
+    ////////////////////////////////////////////
+    var preventRotatUnderGoundhandler = new Cesium.ScreenSpaceEventHandler(canvas);
+    BMGolbe.PreventRotatUnderGoundHandler = preventRotatUnderGoundhandler;
+    //防止旋转到地下---
+    BMGolbe.viewer.scene.screenSpaceCameraController.minimumZoomDistance=1;
+    BMGolbe.viewer.clock.onTick.addEventListener(function () {
+        if(BMGolbe.viewer.camera.pitch > 0){
+            BMGolbe.viewer.scene.screenSpaceCameraController.enableTilt = false;
         }
-        //
-        if (pickedFeature instanceof Cesium.Cesium3DTileFeature) 
+    }); 
+    var startMousePosition;
+    var mousePosition;
+    preventRotatUnderGoundhandler.setInputAction(function(movement) {	
+        mousePosition = startMousePosition = Cesium.Cartesian3.clone(movement.position);
+        preventRotatUnderGoundhandler.setInputAction(function(movement) {
+            mousePosition = movement.endPosition;
+            var y = mousePosition.y - startMousePosition.y;
+            if(y>0){
+                BMGolbe.viewer.scene.screenSpaceCameraController.enableTilt = true;
+            }
+        }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);  
+    }, Cesium.ScreenSpaceEventType.MIDDLE_DOWN);
+    preventRotatUnderGoundhandler.setInputAction(function(movement) {
+        preventRotatUnderGoundhandler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    }, Cesium.ScreenSpaceEventType.MIDDLE_UP);
+    
+    //选择
+    var selectHandler = new Cesium.ScreenSpaceEventHandler(canvas);
+    BMGolbe.SelectHander = selectHandler;
+    selectHandler.setInputAction(function onLeftClick(movement) {
+        if(BMGolbe.HanderType == 0)
         {
-            if(pickedFeature.tileset.asset.id === "terrain")
+            var pickedFeature = BMGolbe.viewer.scene.pick(movement.position);
+            if (!Cesium.defined(pickedFeature)) 
             {
                 UnSelectAll3DTileSetSelectNodes();
                 return;
             }
-            if(BMGolbe.SelectTileFeature !== pickedFeature)
+            //
+            if (pickedFeature instanceof Cesium.Cesium3DTileFeature) 
             {
-                UnSelectAll3DTileSetSelectNodes();
-                //
-                BMGolbe.SelectTileFeature = pickedFeature;
-                pickedFeature.color =  BMGolbe.SelectColor;
-                //此处不能将 选中的Feature的Tile添加至TileSet的SelectedTiles数组中
-                var tile = pickedFeature.content.tile;
-                if(!Cesium.defined(tile.SelectedFeatures)) tile.SelectedFeatures = [];
-                tile.SelectedFeatures.push(pickedFeature);
-                //
-                var guid = pickedFeature.getProperty('name'); 
-                BMGolbe.Select3DTileNodeEvent.raiseEvent(guid);
+                if(pickedFeature.tileset.asset.id === "terrain")
+                {
+                    UnSelectAll3DTileSetSelectNodes();
+                    return;
+                }
+                if(BMGolbe.SelectTileFeature !== pickedFeature)
+                {
+                    UnSelectAll3DTileSetSelectNodes();
+                    //
+                    BMGolbe.SelectTileFeature = pickedFeature;
+                    pickedFeature.color =  BMGolbe.SelectColor;
+                    //此处不能将 选中的Feature的Tile添加至TileSet的SelectedTiles数组中
+                    var tile = pickedFeature.content.tile;
+                    if(!Cesium.defined(tile.SelectedFeatures)) tile.SelectedFeatures = [];
+                    tile.SelectedFeatures.push(pickedFeature);
+                    //
+                    var guid = pickedFeature.getProperty('name'); 
+                    var url = tile.tileset.originURL;
+                    BMGolbe.Select3DTileNodeEvent.raiseEvent(url + ':'+guid);
+                }
             }
-        }
-        else if(pickedFeature.id instanceof Cesium.Entity)
-        {
-            var index = GetArrayElementIndex(BMGolbe.TextLabelEntites,pickedFeature.id);
-            if(index !== -1)
-                BMGolbe.ClickTextLabelEvent.raiseEvent(pickedFeature.id.id);
-            else
+            else if(pickedFeature.id instanceof Cesium.Entity)
             {
-                index = GetArrayElementIndex(BMGolbe.ImageLabelEntites,pickedFeature.id);
+                var index = GetArrayElementIndex(BMGolbe.TextLabelEntites,pickedFeature.id);
                 if(index !== -1)
-                    BMGolbe.ClickImageLabelEvent.raiseEvent(pickedFeature.id.id);
+                    BMGolbe.ClickTextLabelEvent.raiseEvent(pickedFeature.id.id);
+                else
+                {
+                    index = GetArrayElementIndex(BMGolbe.ImageLabelEntites,pickedFeature.id);
+                    if(index !== -1)
+                        BMGolbe.ClickImageLabelEvent.raiseEvent(pickedFeature.id.id);
+                }
             }
         }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -350,7 +409,7 @@ function BMInit(container,options)
             }
         }
     });
-    //
+    //更新DIV标签位置
     var i = 0;
     BMGolbe.viewer.scene.preRender.addEventListener(function() {
         var rootTop = BMGolbe.BMGISRootDOM.offsetTop+document.body.scrollTop;
@@ -371,53 +430,57 @@ function BMInit(container,options)
             }
         }
     });
-    ////
-    // function computeCircle(radius) {
-    //     var positions = [];
-    //     for (var i = 0; i < 360; i++) {
-    //       var radians = Cesium.Math.toRadians(i);
-    //       positions.push(new Cesium.Cartesian2(radius * Math.cos(radians), radius * Math.sin(radians)));
-    //     }
-    //     return positions;
-    //   }
-    //   //
-    // var llll =  new Cesium.PolylineVolumeGeometry({
-    //     polylinePositions : Cesium.Cartesian3.fromDegreesArray([
-    //         113.3666, 23.1130,
-    //         113.3153, 23.1158,
-    //         113.3148, 23.1404
-    //     ]),
-    //     shapePositions:computeCircle(10),
-    //     material : Cesium.Color.RED
-    //   });
-  
-    // BMGolbe.viewer.scene.primitives.add(new Cesium.ClassificationPrimitive({
-    //     geometryInstances : new Cesium.GeometryInstance({
-    //         geometry : Cesium.PolylineVolumeGeometry.createGeometry(llll),
-    //         attributes : {
-    //             color : Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.RED),
-    //         },
-    //         id : 'volume'
-    //     }),
-    //     classificationType : Cesium.ClassificationType.BOTH
-    // }));
-    // var llll =  new Cesium.CorridorGeometry({
-    //     vertexFormat : Cesium.VertexFormat.POSITION_ONLY,
-    //     positions : Cesium.Cartesian3.fromDegreesArray([
-    //         113.3666, 23.1130,
-    //         113.3153, 23.1158,
-    //         113.3148, 23.1404
-    //     ]),
-    //     width:10
-    //   });
-    // BMGolbe.viewer.scene.primitives.add(new Cesium.GroundPrimitive({
-    //     geometryInstances : new Cesium.GeometryInstance({
-    //         geometry : llll
-    //     }),
-    //     classificationType : Cesium.ClassificationType.BOTH
-    // }));
+    //闪烁场景标签
+    BMGolbe.viewer.scene.preRender.addEventListener(function() {
+        if (BMGolbe.GlintLabels.length > 0)
+        {
+            var cTime = (new Date()).getTime();
+            var sTime = BMGolbe.BeginGlintDate.getTime();
+            var dTime = cTime -sTime;
+            if(dTime <=  BMGolbe.Duration)
+            {
+                dTime %= 500;
+                BMGolbe.GlintColor.red = 1;
+                BMGolbe.GlintColor.green = Math.sin(dTime);
+                for(i=0;i<BMGolbe.GlintLabels.length;++i)
+                {
+                    var fEntity = BMGolbe.GlintLabels[i];
+                    if(Cesium.defined(fEntity.label))
+                    {
+                        fEntity.label.fillColor = BMGolbe.GlintColor;
+                    }
+                    else
+                    {
+                        fEntity.billboard.color = BMGolbe.GlintColor;
+                    }  
+                }
+            }
+            else
+            {
+                for(;i<BMGolbe.GlintLabels.length;++i)
+                {
+                    var findEntity =  BMGolbe.GlintLabels[i];
+                    if(Cesium.defined(findEntity.label))
+                    {
+                        findEntity.label.fillColor = findEntity.oldColor;
+                    }
+                    else
+                    {
+                        findEntity.billboard.color = findEntity.oldColor;
+                    }
+                }
+                BMGolbe.GlintLabels.splice(0,BMGolbe.GlintLabels.length);
+            }      
+        }
+    });
+    //获取CanvasContainerDIV,classname = 'cesium-widget'
+    BMGolbe.CanvasContainerElement = BMGolbe.viewer.container.getElementsByTagName('div')[0].getElementsByTagName('div')[0].getElementsByTagName('div')[0];
     //
-   // BMGolbe.viewer.scene.screenSpaceCameraController.tiltEventTypes = Cesium.CameraEventType.RIGHT_DRAG  ;
+    InitMeasurePointCoordinateHander();
+    InitMeasureMultiLineLengthHander();
+    InitMeasureAreaHander();
+    //
+    BMSetOperateHanderType(0);
 }
 /** 调整3DTile 高度
  * @Fuction
@@ -503,7 +566,8 @@ function BMRemove3DTile(tileURL) {
     if (Cesium.defined(BMGolbe.SelectTileFeature) && BMGolbe.SelectTileFeature.tileset === findTile) 
     {
         var guid = BMGolbe.SelectTileFeature.getProperty('name'); 
-        BMGolbe.UnSelect3DTileNodeEvent.raiseEvent(guid);
+        var url = findTile.originURL;
+        BMGolbe.UnSelect3DTileNodeEvent.raiseEvent(url + ':' + guid);
         BMGolbe.SelectTileFeature = undefined;
     }
     //
@@ -834,7 +898,7 @@ function BMRoaming(Datas,RoamingSpeed,offsetHeight)
         var pt1 = arryPts[i+1];
         //
         var _len = Cesium.Cartesian3.distance(pt0,pt1);
-        totalLen += _len;
+        totalLen += _len;totalLen += _len;
         var _time = totalLen / RoamingSpeed;
         arryTimes[i+1] = Cesium.JulianDate.addSeconds(startTime,_time,new Cesium.JulianDate());
     }
@@ -947,13 +1011,16 @@ function BMSetRoamingEyeAngleOffset(newOffset)
 {
     BMGolbe.RoamingEyeOffsetAngle = newOffset;
 }
-/** 显示\隐藏 影像路网标注图层
+/** 显示\隐藏 路网标注图层
  * @Fuction
  * @param {Boolean} Visible = true 
  */
 function BMAnnotationLayerVisibility(Visible)
 {
-    BMGolbe.imageLabel.show = Visible;
+    if(BMGolbe.LabelLayer !== undefined)
+    {
+        BMGolbe.LabelLayer.show = Visible;
+    }
 }
 /** 添加EntityImageLabel
  * @Fuction
@@ -1224,6 +1291,16 @@ function BMSetMouseLeftClickTextLabelEventListener(listener) {
 
     BMGolbe.ClickTextLabelEvent.addEventListener(listener);
 }
+/** 缩放至场景标签  
+ * @Fuction
+ * @param {String} lableID 标签ID  
+ */
+function BMZoomToEntityLabel(lableID) {
+    var findEntity =  BMGolbe.viewer.entities.getById(lableID);
+    if(!Cesium.defined(findEntity)) return;
+    //
+    BMGolbe.viewer.flyTo(findEntity);
+}
 /** 添加 DIV标签
  * @Fuction
  * @param {Number} Pos_longitude 经度（°） 
@@ -1243,6 +1320,150 @@ function BMAddDIVLabel(Pos_longitude,Pos_latitude,Pos_height)
     BMGolbe.DIVLabelPoss.push(position);
     //
     return newDIV;
+}
+/** 闪烁场景标签
+ * @Fuction
+ * @param {String[]} lableIDs 标签ID---数组---
+ * @param {Number} duration 闪烁持续时间 毫秒 
+ */
+function BMGlintEntityLabels(lableIDs,duration) {
+    var i=0;
+    for(;i<BMGolbe.GlintLabels.length;++i)
+    {
+        var fEntity =  BMGolbe.GlintLabels[i];
+        if(Cesium.defined(fEntity.label))
+        {
+            fEntity.label.fillColor = fEntity.oldColor;
+        }
+        else
+        {
+            fEntity.billboard.color = fEntity.oldColor;
+        }
+    }
+    BMGolbe.GlintLabels.splice(0,BMGolbe.GlintLabels.length);
+    //
+    for(i=0;i<lableIDs.length;++i)
+    {
+        var findEntity =  BMGolbe.viewer.entities.getById(lableIDs[i]);
+        if(Cesium.defined(findEntity)) 
+        {
+            BMGolbe.GlintLabels.push(findEntity);
+            var oldColor;
+            if(Cesium.defined(findEntity.label))
+            {
+                oldColor = findEntity.label.fillColor;
+            }
+            else
+            {
+                oldColor = findEntity.billboard.color;
+            }
+            findEntity.oldColor = oldColor;
+        }
+    }
+    //
+    BMGolbe.BeginGlintDate = new Date();
+    BMGolbe.Duration = duration;
+}
+
+/** 显示\隐藏 三维球体
+ * @Fuction
+ * @param {Boolean} Show 显示隐藏 
+ */
+function BMShowGlobe(Show)
+{
+    BMGolbe.viewer.scene.globe.show = Show;
+    BMGolbe.viewer.scene.skyAtmosphere.show = Show;
+}
+/** 设置地图类型---默认为 mapbox矢量地图
+ * @Fuction
+ * @param {Number} mapType :0 谷歌影像地图（无注记层）、1 mapbox矢量地图（含注记层）、2 天地图矢量地图（无注记层）
+ */
+function BMSetGlobeMapType(mapType)
+{
+    BMGolbe.viewer.imageryLayers.remove(BMGolbe.ImageLayer);
+    //
+    if(mapType === 0)
+        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.GoogleImageProvider,1);
+    else if(mapType === 1)
+        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.MapboxMapProvider,1);
+    else
+        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.TianDiTuMapProvider,1);
+}
+/** 设置地图注记类型---默认为 空
+ * @Fuction
+ * @param {Number} labelType :0 天地图矢量注记、1 天地图影像注记、2 无附加注记图层---当底图为mapbox矢量地图时，不需要再附加注记图层 
+ */
+function BMSetGlobeMapLabelType(labelType)
+{
+    if(BMGolbe.LabelLayer !== undefined)
+    {
+        BMGolbe.viewer.imageryLayers.remove(BMGolbe.LabelLayer);
+        BMGolbe.LabelLayer = undefined;
+    }
+    //
+    if(labelType === 0)
+        BMGolbe.LabelLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.MapLabelTianDiTuProvider,2);
+    else if(labelType === 1)
+        BMGolbe.LabelLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.ImageLabelTianDiTuProvider,2);
+}
+/** 修改图层样式
+ * @Fuction
+ * @param {Number} mapType 图层类型 ：0 底图图层、1 注记图层
+ * @param {Object} [options] 配置选项
+ * @param {Number} [options.alpha] 透明度[0-1] 1.0
+ * @param {Number} [options.brightness] 亮度[0-1] 1.0
+ * @param {Number} [options.contrast] 对比度[0-1] 1.0
+ * @param {Number} [options.hue] 色调[0-1] 0.0
+ * @param {Number} [options.saturation] 饱和度[0-1] 1.0
+ * @param {Number} [options.gammaCorrection] 灰度校正[0-1] 1.0
+ */
+function BMEditGlobeMapStyle(mapType,options)
+{
+    options.alpha = Cesium.defaultValue(options.alpha, 1.0);
+    options.brightness = Cesium.defaultValue(options.brightness, 1.0);
+    options.contrast = Cesium.defaultValue(options.contrast, 1.0);
+    options.hue = Cesium.defaultValue(options.hue, 0.0);
+    options.saturation = Cesium.defaultValue(options.saturation, 1.0);
+    options.gammaCorrection = Cesium.defaultValue(options.gammaCorrection, 1.0);
+    if(mapType === 0)
+    {
+        BMGolbe.ImageLayer.alpha =  options.alpha;
+        BMGolbe.ImageLayer.brightness =  options.brightness;
+        BMGolbe.ImageLayer.contrast =  options.contrast;
+        BMGolbe.ImageLayer.hue =  options.hue;
+        BMGolbe.ImageLayer.saturation =  options.saturation;
+        BMGolbe.ImageLayer.gamma =  options.gammaCorrection;
+    }
+    else if(mapType === 1 && BMGolbe.LabelLayer !== undefined)
+    {
+        BMGolbe.LabelLayer.alpha =  options.alpha;
+        BMGolbe.LabelLayer.brightness =  options.brightness;
+        BMGolbe.LabelLayer.contrast =  options.contrast;
+        BMGolbe.LabelLayer.hue =  options.hue;
+        BMGolbe.LabelLayer.saturation =  options.saturation;
+        BMGolbe.LabelLayer.gamma =  options.gammaCorrection;
+    }
+}
+//
+/** 设置操作类型
+ * @Fuction
+ * @param {Number} handerType 0选择 1坐标测量 2多线测量 3面积测量 4垂直距离测量
+ */
+function BMSetOperateHanderType(handerType)
+{
+    if(BMGolbe.HanderType != handerType)
+    {
+        ResetMeasureData();
+        BMGolbe.HanderType = handerType;
+        if(handerType == 0)
+        {
+            BMGolbe.CanvasContainerElement.style.cursor="auto";
+        }
+        else
+        {
+            BMGolbe.CanvasContainerElement.style.cursor="crosshair";
+        }
+    }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //private
@@ -1531,7 +1752,8 @@ function UnSelectAll3DTileSetSelectNodes()
         var tile = BMGolbe.SelectTileFeature.content.tile;
         tile.tileset.NeedRemoveSelectTiles.push(tile);
         var guid = BMGolbe.SelectTileFeature.getProperty('name'); 
-        BMGolbe.UnSelect3DTileNodeEvent.raiseEvent(guid);
+        var url = tile.tileset.originURL;
+        BMGolbe.UnSelect3DTileNodeEvent.raiseEvent(url + ':' +guid);
     }
 }
 /*获取数组index
@@ -1549,5 +1771,562 @@ function GetArrayElementIndex(arr,value)
     }
     //
     return index;
+}
+/*根据 屏幕坐标获取场景Cartesian3坐标----此函数还是有问题(若使用全球地形会有偏移)，待研究优化----jgb 20180915
+*/
+function GetCartesian3ByMousePoint(mousePoint,scratchCartesianPt)
+{
+    var scenePick = BMGolbe.viewer.scene.pickPosition(mousePoint,scratchCartesianPt);
+    if(scenePick)
+    {
+         Cesium.Cartographic.fromCartesian(scenePick,BMGolbe.viewer.scene.globe.ellipsoid,BMGolbe.scratchCartographicPt);
+         if(BMGolbe.scratchCartographicPt.height < -30)
+         {
+            BMGolbe.viewer.camera.pickEllipsoid(mousePoint, BMGolbe.viewer.scene.globe.ellipsoid,scratchCartesianPt);
+         }
+         //
+         return scratchCartesianPt;
+    }
+    else
+    {
+         return undefined;
+    }
+}
+
+/*重置 测量数据
+*/
+function ResetMeasureData()
+{
+    BMGolbe.PointCoordinateEntity.show = false;
+    //
+    BMGolbe.MeasureMultiLineEntities.forEach(function(en){BMGolbe.viewer.entities.remove(en);});
+    BMGolbe.MeasureMultiLinePoints.splice(0,BMGolbe.MeasureMultiLinePoints.length);
+    BMGolbe.MeasureMultiLineEntities.splice(0,BMGolbe.MeasureMultiLineEntities.length);
+    BMGolbe.MeasureMultiLineMouseMoveEntity.show = false;
+    BMGolbe.MeasureMultiLineMouseMovePolyLine.show = false;
+    //
+    BMGolbe.MeasureAreaEntities.forEach(function(en){BMGolbe.viewer.entities.remove(en);});
+    BMGolbe.MeasureAreaPoints.splice(0,BMGolbe.MeasureAreaPoints.length);
+    BMGolbe.MeasureAreaEntities.splice(0,BMGolbe.MeasureAreaEntities.length);
+    BMGolbe.MeasureAreaMouseMovePolyLine.show = false;
+    BMGolbe.MeasureAreaTxtEntity.show = false;
+    BMGolbe.MeasureAreaPolygonEntity.show = false;
+}
+/*初始化 坐标测量hander
+*/
+BMGolbe.MeasureUseColor = Cesium.Color.MEDIUMPURPLE;
+BMGolbe.MeasureDistanceDisplayCondition = new Cesium.DistanceDisplayCondition(0.5 ,50000);
+BMGolbe.MeasureDisableDepthTestDistance = new Cesium.ConstantProperty(10000);
+BMGolbe.PointCoordinateEntity = undefined;
+function InitMeasurePointCoordinateHander()
+{
+    var positon = new Cesium.ConstantPositionProperty(BMGolbe.scratchCartesianPt);
+    BMGolbe.PointCoordinateEntity =  BMGolbe.viewer.entities.add({
+         position : Cesium.Cartesian3.fromDegrees(0, 0, 0),
+         label : {
+             text : "",
+             horizontalOrigin : Cesium.HorizontalOrigin.LEFT ,
+             verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
+             fillColor : BMGolbe.MeasureUseColor,
+             distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
+             font:"20px sans-serif",
+             pixelOffset:BMGolbe.LabelPixelOffset,
+             disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
+         },
+         point:{
+             color: Cesium.Color.SNOW ,
+             outlineColor: Cesium.Color.CORAL,
+             outlineWidth:1,
+             pixelSize:3,
+             distanceDisplayCondition: BMGolbe.MeasureDistanceDisplayCondition,
+             disableDepthTestDistance :BMGolbe.MeasureDisableDepthTestDistance
+         }
+     });
+     BMGolbe.PointCoordinateEntity.show = false;
+     //
+    BMGolbe.MeasurePointCoordinateHander = new Cesium.ScreenSpaceEventHandler(BMGolbe.viewer.scene.canvas);
+    BMGolbe.MeasurePointCoordinateHander.setInputAction(function(movement) {
+        if(BMGolbe.HanderType == 1)
+        {
+            
+            var scenePick = GetCartesian3ByMousePoint(movement.position,BMGolbe.scratchCartesianPt);
+           
+            
+            if(scenePick)
+            {
+                 Cesium.Cartographic.fromCartesian(scenePick,BMGolbe.viewer.scene.globe.ellipsoid,BMGolbe.scratchCartographicPt);
+                 //console.log(movement.position);
+                 //console.log(Cesium.SceneTransforms.wgs84ToWindowCoordinates(BMGolbe.viewer.scene, Cesium.Cartesian3.fromRadians(BMGolbe.scratchCartographicPt.longitude,BMGolbe.scratchCartographicPt.latitude)));
+                 //
+                 positon.setValue(scenePick);
+                 BMGolbe.PointCoordinateEntity.position = positon;
+                 BMGolbe.PointCoordinateEntity.show = true;
+                 //
+                 var lat_String=Cesium.Math.toDegrees(BMGolbe.scratchCartographicPt.latitude).toFixed(6);
+                 var log_String=Cesium.Math.toDegrees(BMGolbe.scratchCartographicPt.longitude).toFixed(6);
+                 var alti_String=BMGolbe.scratchCartographicPt.height.toFixed(3);
+                 BMGolbe.PointCoordinateEntity.label.text = "  lon=" + log_String + ' \u00B0' +"\n" + "  lat=" + lat_String + ' \u00B0' + "\n" + "  z=" +alti_String + ' m' ;
+            }
+        }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    //
+     BMGolbe.MeasurePointCoordinateHander.setInputAction(function(movement) {
+        BMSetOperateHanderType(0);
+        BMGolbe.PointCoordinateEntity.show = false;
+     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+}
+/*初始化 多线长度测量hander
+*/
+function AddEntityForMeasureMultiLineLength_Label_Polyline(labelTxt,polylinePoints)
+{
+    BMGolbe.scratchCartesianPt.x =( polylinePoints[0].x +polylinePoints[1].x)/2.0; 
+    BMGolbe.scratchCartesianPt.y =( polylinePoints[0].y +polylinePoints[1].y)/2.0;
+    BMGolbe.scratchCartesianPt.z =( polylinePoints[0].z +polylinePoints[1].z)/2.0;
+    //
+    var newEntity;
+    if(labelTxt === "")
+    {
+        newEntity =  BMGolbe.viewer.entities.add({
+            polyline : {
+                positions : polylinePoints,
+                width : 2,
+                material : Cesium.Color.LIGHTGREEN,
+                depthFailMaterial:Cesium.Color.LIGHTGREEN
+            }
+        });
+    }
+    else
+    {
+        newEntity =  BMGolbe.viewer.entities.add({
+            position : BMGolbe.scratchCartesianPt,
+            label : {
+                text : labelTxt,
+                horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
+                verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
+                fillColor : BMGolbe.MeasureUseColor,
+                distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
+                font:"20px sans-serif",
+                pixelOffset:BMGolbe.LabelPixelOffset,
+                disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
+            },
+            polyline : {
+                positions : polylinePoints,
+                width : 2,
+                material : Cesium.Color.LIGHTGREEN,
+                depthFailMaterial:Cesium.Color.LIGHTGREEN
+            }
+        });
+    }
+    //
+    return newEntity;
+}
+function AddEntityForMeasureMultiLineLength_Point(pointPos)
+{
+    var newEntity =  BMGolbe.viewer.entities.add({
+        position : pointPos,
+        point:{
+            color: Cesium.Color.SNOW ,
+            outlineColor: Cesium.Color.CORAL,
+            outlineWidth:1,
+            pixelSize:3,
+            distanceDisplayCondition: BMGolbe.MeasureDistanceDisplayCondition,
+            disableDepthTestDistance :BMGolbe.MeasureDisableDepthTestDistance
+        }
+    });
+    //
+    return newEntity;
+}
+function AddEntityForMeasureMultiLineLength_Label(pointPos,labelTxt)
+{
+    var newEntity =  BMGolbe.viewer.entities.add({
+        position : pointPos,
+        label : {
+            text : labelTxt,
+            horizontalOrigin : Cesium.HorizontalOrigin.LEFT,
+            verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
+            fillColor : BMGolbe.MeasureUseColor,
+            distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
+            font:"20px sans-serif",
+            pixelOffset:BMGolbe.LabelPixelOffset,
+            disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
+        }
+    });
+    //
+    return newEntity;
+}
+BMGolbe.MeasureMultiLineEntities = [];
+BMGolbe.MeasureMultiLinePoints = [];
+BMGolbe.MeasureMultiLineMouseMoveEntity = undefined;
+BMGolbe.MeasureMultiLineMouseMovePolyLine = undefined;
+function InitMeasureMultiLineLengthHander()
+{
+    var position = new Cesium.ConstantPositionProperty(new Cesium.Cartesian3());
+    BMGolbe.MeasureMultiLineMouseMoveEntity =  BMGolbe.viewer.entities.add({
+         position : position,
+         label : {
+             text : "",
+             horizontalOrigin : Cesium.HorizontalOrigin.LEFT ,
+             verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
+             fillColor : BMGolbe.MeasureUseColor,
+             distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
+             font:"20px sans-serif",
+             pixelOffset:BMGolbe.LabelPixelOffset,
+             disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
+         }
+     });
+    BMGolbe.MeasureMultiLineMouseMoveEntity.show = false;
+
+    var polylines = new Cesium.PolylineCollection();
+    BMGolbe.MeasureMultiLineMouseMovePolyLine = polylines.add({
+        positions : Cesium.Cartesian3.fromDegreesArray([
+          -75.10, 39.57,
+          -77.02, 38.53]),
+        width : 2,
+        material :new Cesium.Material({
+            fabric : {
+                type : 'Color',
+                uniforms : {
+                    color : Cesium.Color.LIGHTGREEN
+                }
+            }
+        })
+      });
+    BMGolbe.MeasureMultiLineMouseMovePolyLine.show = false;
+    BMGolbe.viewer.scene.primitives.add(polylines);
+     //
+    BMGolbe.MeasureMultiLineLengthHander = new Cesium.ScreenSpaceEventHandler(BMGolbe.viewer.scene.canvas);
+    BMGolbe.MeasureMultiLineLengthHander.setInputAction(function(movement) {
+        if(BMGolbe.HanderType == 2)
+        {
+            BMGolbe.MeasureMultiLineMouseMoveEntity.show = false;
+            BMGolbe.MeasureMultiLineMouseMovePolyLine.show = false;
+            if(BMGolbe.MeasureMultiLinePoints.length == 0)
+            {
+                BMGolbe.MeasureMultiLineEntities.forEach(function(en){BMGolbe.viewer.entities.remove(en);});
+                BMGolbe.MeasureMultiLineEntities.splice(0,BMGolbe.MeasureMultiLineEntities.length);
+            }
+            var scenePick = GetCartesian3ByMousePoint(movement.position, new Cesium.Cartesian3());
+            if(scenePick)
+            {
+                BMGolbe.MeasureMultiLinePoints.push(scenePick);
+                var pointEntity = AddEntityForMeasureMultiLineLength_Point(scenePick);
+                BMGolbe.MeasureMultiLineEntities.push(pointEntity);
+                //
+                if(BMGolbe.MeasureMultiLinePoints.length > 1)
+                {
+                    var prePosition= BMGolbe.MeasureMultiLinePoints[BMGolbe.MeasureMultiLinePoints.length - 2];
+                    var len = Cesium.Cartesian3.distance(prePosition, scenePick);
+                    var labelTxt = "";
+                    if(len > 1001.0)
+                    {
+                        labelTxt = (len / 1000.0).toFixed(3) + ' km';
+                    }
+                    else
+                    {
+                        labelTxt = len.toFixed(2) + ' m';
+                    }
+                    var labelEntity = AddEntityForMeasureMultiLineLength_Label_Polyline(labelTxt,[prePosition,scenePick]);
+                    BMGolbe.MeasureMultiLineEntities.push(labelEntity);
+                }
+            }
+        }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    //
+    BMGolbe.MeasureMultiLineLengthHander.setInputAction(function(movement) {
+        if(BMGolbe.MeasureMultiLinePoints.length > 0)
+        {
+            var scenePick = GetCartesian3ByMousePoint(movement.endPosition, new Cesium.Cartesian3());
+            if(scenePick)
+            {
+                var prePosition= BMGolbe.MeasureMultiLinePoints[BMGolbe.MeasureMultiLinePoints.length - 1];
+                var len = Cesium.Cartesian3.distance(prePosition, scenePick);
+                var labelTxt = "";
+                if(len > 1001.0)
+                {
+                    labelTxt = (len / 1000.0).toFixed(3) + ' km';
+                }
+                else
+                {
+                    labelTxt = len.toFixed(2) + ' m';
+                }
+                //
+                BMGolbe.scratchCartesianPt.x =( prePosition.x +scenePick.x)/2.0; 
+                BMGolbe.scratchCartesianPt.y =( prePosition.y +scenePick.y)/2.0;
+                BMGolbe.scratchCartesianPt.z =( prePosition.z +scenePick.z)/2.0;
+                position.setValue(BMGolbe.scratchCartesianPt);
+                //
+                BMGolbe.MeasureMultiLineMouseMoveEntity.positon =position; 
+                BMGolbe.MeasureMultiLineMouseMoveEntity.label.text = labelTxt;
+                BMGolbe.MeasureMultiLineMouseMovePolyLine.positions = [prePosition,scenePick];
+            }
+            BMGolbe.MeasureMultiLineMouseMoveEntity.show = true;
+            BMGolbe.MeasureMultiLineMouseMovePolyLine.show = true;
+        }
+     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    //
+    BMGolbe.MeasureMultiLineLengthHander.setInputAction(function(movement) {
+        if(BMGolbe.MeasureMultiLinePoints.length > 1)
+        {
+            var len = 0;
+            for(var i=1;i<BMGolbe.MeasureMultiLinePoints.length;++i)
+            {
+                var prePoint = BMGolbe.MeasureMultiLinePoints[i-1];
+                var point = BMGolbe.MeasureMultiLinePoints[i];
+                len += Cesium.Cartesian3.distance(prePoint, point);
+            }
+            var labelTxt = "";
+            if(len > 1001.0)
+            {
+                labelTxt = "  total:" + (len / 1000.0).toFixed(3) + ' km';
+            }
+            else
+            {
+                labelTxt = "  total:" +len.toFixed(2) + ' m';
+            }
+            var newEnnn = AddEntityForMeasureMultiLineLength_Label(BMGolbe.MeasureMultiLinePoints[BMGolbe.MeasureMultiLinePoints.length -1],labelTxt);
+            BMGolbe.MeasureMultiLineEntities.push(newEnnn);
+        }
+        BMGolbe.MeasureMultiLinePoints.splice(0,BMGolbe.MeasureMultiLinePoints.length);
+        BMGolbe.MeasureMultiLineMouseMoveEntity.show = false;
+        BMGolbe.MeasureMultiLineMouseMovePolyLine.show = false;
+     }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+     //
+     BMGolbe.MeasureMultiLineLengthHander.setInputAction(function(movement) {
+        BMSetOperateHanderType(0);
+        BMGolbe.MeasureMultiLineEntities.forEach(function(en){BMGolbe.viewer.entities.remove(en);});
+        BMGolbe.MeasureMultiLinePoints.splice(0,BMGolbe.MeasureMultiLinePoints.length);
+        BMGolbe.MeasureMultiLineEntities.splice(0,BMGolbe.MeasureMultiLineEntities.length);
+        BMGolbe.MeasureMultiLineMouseMoveEntity.show = false;
+        BMGolbe.MeasureMultiLineMouseMovePolyLine.show = false;
+     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+}
+/*初始化 面积测量hander
+*/
+BMGolbe.MeasureAreaEntities = [];
+BMGolbe.MeasureAreaPoints = [];
+BMGolbe.MeasureAreaMouseMovePolyLine = undefined;
+BMGolbe.MeasureAreaTxtEntity = undefined;
+BMGolbe.MeasureAreaPolygonEntity = undefined;
+function ComputeCenter(points,result)
+{
+    result.x = 0;
+    result.y = 0;
+    result.z = 0;
+    points.forEach(function(p){result.x += p.x;result.y += p.y;result.z += p.z;});
+    //
+    result.x /= points.length;
+    result.y /= points.length;
+    result.z /= points.length;
+    //
+    return result;
+}
+function ComputeArea2DXY(points)
+{
+    var num = points.length;
+	var _area = 0.0;
+	for (var i = 0; i < num; ++i)
+	{
+		var p0 = points[i];
+		var p1 = points[(i + 1) % num];
+		var p2 = points[(i - 1 + num) % num];
+		_area += p0.x * (p1.y - p2.y);
+    }
+	return _area / 2.0;
+}
+function ComputeArea2DYZ(points)
+{
+    var num = points.length;
+	var _area = 0.0;
+	for (var i = 0; i < num; ++i)
+	{
+		var p0 = points[i];
+		var p1 = points[(i + 1) % num];
+		var p2 = points[(i - 1 + num) % num];
+		_area += p0.x * (p1.z - p2.z);
+	}
+	//
+	return _area / 2.0;
+}
+function ComputeArea2DXZ(points)
+{
+	var num = points.length;
+	var _area = 0.0;
+	for (var i = 0; i < num; ++i)
+	{
+		var p0 = points[i];
+		var p1 = points[(i + 1) % num];
+		var p2 = points[(i - 1 + num) % num];
+		_area += p0.x * (p1.z - p2.z);
+	}
+	//
+	return _area / 2.0;
+}
+function ComputeArea(points)
+{
+    var pt0 = points[0];
+	var pt1 = points[1];
+    var pt2 = points[2];
+    var p10 = Cesium.Cartesian3.subtract(pt1,pt0,new Cesium.Cartesian3());
+    var p20 = Cesium.Cartesian3.subtract(pt2,pt0,new Cesium.Cartesian3());
+	//
+    var _faceNormal = Cesium.Cartesian3.cross(p10,p20,new Cesium.Cartesian3());
+    Cesium.Cartesian3.normalize(_faceNormal,_faceNormal);
+	var _area = 0.0;
+	if (Math.abs(_faceNormal.z) > 0.2)
+	{
+		_area = ComputeArea2DXY(points);
+		_area = _area / _faceNormal.z;
+	}
+	else if (Math.abs(_faceNormal.y) > 0.2)
+	{
+		_area = ComputeArea2DXZ(points);
+		_area = _area / _faceNormal.y;
+	}
+	else
+	{
+		_area = ComputeArea2DYZ(points);
+		_area = _area / _faceNormal.x;
+	}
+	return Math.abs(_area);
+}
+function InitMeasureAreaHander()
+{
+    var txtEntity =  BMGolbe.viewer.entities.add({
+         position : new Cesium.Cartesian3(),
+         label : {
+             text : "",
+             horizontalOrigin : Cesium.HorizontalOrigin.LEFT ,
+             verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
+             fillColor : BMGolbe.MeasureUseColor,
+             distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
+             font:"20px sans-serif",
+             pixelOffset:BMGolbe.LabelPixelOffset,
+             disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
+         }
+     });
+     txtEntity.show = false;
+    //
+    var PolygonEntity = BMGolbe.viewer.entities.add({
+        polygon : {
+            hierarchy : Cesium.Cartesian3.fromDegreesArrayHeights([
+               -90.0, 41.0, 0.0,
+               -85.0, 41.0, 500000.0,
+               -80.0, 41.0, 0.0
+            ]),
+            perPositionHeight : true,
+            material : Cesium.Color.CYAN.withAlpha(0.5)
+        }
+    });
+    PolygonEntity.show = false;
+    BMGolbe.MeasureAreaTxtEntity = txtEntity;
+    BMGolbe.MeasureAreaPolygonEntity = PolygonEntity;
+    //
+    var polylines = new Cesium.PolylineCollection();
+    BMGolbe.MeasureAreaMouseMovePolyLine = polylines.add({
+        positions : Cesium.Cartesian3.fromDegreesArray([
+          -75.10, 39.57,
+          -77.02, 38.53]),
+        width : 2,
+        material :new Cesium.Material({
+            fabric : {
+                type : 'Color',
+                uniforms : {
+                    color : Cesium.Color.AZURE
+                }
+            }
+        })
+      });
+    BMGolbe.MeasureAreaMouseMovePolyLine.show = false;
+    BMGolbe.viewer.scene.primitives.add(polylines);
+    //
+    var lastLine;
+    BMGolbe.MeasureAreaHander = new Cesium.ScreenSpaceEventHandler(BMGolbe.viewer.scene.canvas);
+    BMGolbe.MeasureAreaHander.setInputAction(function(movement) {
+        if(BMGolbe.HanderType == 3)
+        {
+            BMGolbe.MeasureAreaMouseMovePolyLine.show = false;
+            if(BMGolbe.MeasureAreaPoints.length == 0)
+            {
+                BMGolbe.MeasureAreaEntities.forEach(function(en){BMGolbe.viewer.entities.remove(en);});
+                BMGolbe.MeasureAreaEntities.splice(0,BMGolbe.MeasureAreaEntities.length);
+                //
+                BMGolbe.MeasureAreaPolygonEntity.show = false;
+                BMGolbe.MeasureAreaTxtEntity.show = false;
+            }
+            var scenePick = GetCartesian3ByMousePoint(movement.position, new Cesium.Cartesian3());
+            if(scenePick)
+            {
+                BMGolbe.MeasureAreaPoints.push(scenePick);
+                var pointEntity = AddEntityForMeasureMultiLineLength_Point(scenePick);
+                BMGolbe.MeasureAreaEntities.push(pointEntity);
+                //
+                if(BMGolbe.MeasureAreaPoints.length > 1)
+                {
+                    var prePosition= BMGolbe.MeasureAreaPoints[BMGolbe.MeasureAreaPoints.length - 2];
+                    var labelEntity = AddEntityForMeasureMultiLineLength_Label_Polyline("",[prePosition,scenePick]);
+                    BMGolbe.MeasureAreaEntities.push(labelEntity);
+                    if(BMGolbe.MeasureAreaPoints.length > 2)
+                    {
+                        var fistPoint = BMGolbe.MeasureAreaPoints[0];
+                        if(lastLine)
+                        {
+                            lastLine.polyline.positions = [fistPoint,scenePick];
+                        }
+                        else
+                        {
+                            lastLine = AddEntityForMeasureMultiLineLength_Label_Polyline("",[fistPoint,scenePick]);
+                            BMGolbe.MeasureAreaEntities.push(lastLine);
+                        }
+                        //
+                        PolygonEntity.polygon.hierarchy =  BMGolbe.MeasureAreaPoints;
+                        PolygonEntity.show = true;
+                        //
+                        ComputeCenter(BMGolbe.MeasureAreaPoints,BMGolbe.scratchCartesianPt);
+                        txtEntity.position = BMGolbe.scratchCartesianPt;
+                        var areaee = ComputeArea(BMGolbe.MeasureAreaPoints);
+                        if(areaee > 1000000)
+                        {
+                            areaee/=1000000;
+                            txtEntity.label.text = areaee.toFixed(3) + " km²"; 
+                        }
+                        else
+                        {
+                            txtEntity.label.text = areaee.toFixed(2) + " m²"; 
+                        }
+                        txtEntity.show = true;
+                    }
+                }
+            }
+        }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    //
+    BMGolbe.MeasureAreaHander.setInputAction(function(movement) {
+        if(BMGolbe.MeasureAreaPoints.length > 1)
+        {
+            var scenePick = GetCartesian3ByMousePoint(movement.endPosition, new Cesium.Cartesian3());
+            if(scenePick)
+            {
+                var lastPosition = BMGolbe.MeasureAreaPoints[BMGolbe.MeasureAreaPoints.length - 1];
+                var firstPosition = BMGolbe.MeasureAreaPoints[0];
+                BMGolbe.MeasureAreaMouseMovePolyLine.positions = [lastPosition,scenePick,firstPosition];
+            }
+            BMGolbe.MeasureAreaMouseMovePolyLine.show = true;
+        }
+     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    //
+    BMGolbe.MeasureAreaHander.setInputAction(function(movement) {
+        BMGolbe.MeasureAreaPoints.splice(0,BMGolbe.MeasureAreaPoints.length);
+        BMGolbe.MeasureAreaMouseMovePolyLine.show = false;
+     }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+     //
+     BMGolbe.MeasureAreaHander.setInputAction(function(movement) {
+        BMSetOperateHanderType(0);
+        BMGolbe.MeasureAreaEntities.forEach(function(en){BMGolbe.viewer.entities.remove(en);});
+        BMGolbe.MeasureAreaPoints.splice(0,BMGolbe.MeasureAreaPoints.length);
+        BMGolbe.MeasureAreaEntities.splice(0,BMGolbe.MeasureAreaEntities.length);
+        BMGolbe.MeasureAreaMouseMovePolyLine.show = false;
+        BMGolbe.MeasureAreaTxtEntity.show = false;
+        BMGolbe.MeasureAreaPolygonEntity.show = false;
+     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 }
 

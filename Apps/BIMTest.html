@@ -47,6 +47,12 @@
   <button onclick="NotUseOnlineGlobalTerrain()">使用简单地形</button>
   <button onclick="EnableDepthTestAgainstTerrain()">地形遮挡</button>
   <button onclick="DisableDepthTestAgainstTerrain()">关闭地形遮挡</button>
+  <button onclick="ShowGlobe()">显示三维球</button>
+  <button onclick="HideGlobe()">隐藏三维球</button>
+  <select onchange = "SetGlobeMapType(this.options[this.options.selectedIndex].value)">
+    <option value=0>谷歌影像地图</option><option value=1 selected>mapbox矢量地图</option><option value=2>天地图矢量地图</option></select>
+  <select onchange = "SetGlobeMapLabelType(this.options[this.options.selectedIndex].value)">
+    <option value=0>天地图矢量注记</option><option value=1>天地图影像注记</option><option value=2 selected>无附加注记图层</option></select>
   <button >==</button>
   <button onclick="SetSingleClickSelectNodeListener()">设置选中3DTileNode回调</button>
   <button onclick="SetSingleClickUnSelectNodeListener()">设置取消选中3DTileNode回调</button>
@@ -77,9 +83,20 @@
   <button onclick="ShowAllLabel()">显示 所有场景标签</button>
   <button onclick="SetSingleClickSelectImageLabelListener()">设置单击 场景图片标签回调</button>
   <button onclick="SetSingleClickSelectTextLabelListener()">设置单击 场景文字标签回调</button>
+  <button onclick="ZoomToLabel()">缩放 至场景标签-图片标签</button>
+  <button onclick="GlintLabel()">闪烁场景标签</button>
   <button >==</button>
   <button onclick="AddDIVLabel()">添加 DIV标签</button>
   <button onclick="DeleteDIVLabel()">删除（测试） DIV标签</button>
+</div>
+<div >
+  <select onchange = "SetOperateHanderType(this.options[this.options.selectedIndex].value)">
+    <option value=0 selected>选择</option>
+    <option value=1>坐标测量</option>
+    <option value=2>线段长度测量</option>
+    <option value=3>面积测量</option>
+    <option value=4>垂直距离测量</option>
+  </select>
 </div>
 
 <div id="cesiumContainer"></div>
@@ -91,18 +108,24 @@
   //     Terrain3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT_T/'
   //     }) ;
   BMGIS_Init('cesiumContainer',{
-    UseOnLineGlobalTerrain:false,
-    // HomeView_West:113.2002,
-    // HomeView_South:23.0645,
-    // HomeView_East:113.3807,
-    // HomeView_North:23.1790
-  }) 
+      //BIMMode3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',
+      BIMMode3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/BMTEST0/',
+      Terrain3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT_T_TIN/'
+      }) ;
+  // BMGIS_Init('cesiumContainer',{
+  //   UseOnLineGlobalTerrain:false,
+  //   // HomeView_West:113.2002,
+  //   // HomeView_South:23.0645,
+  //   // HomeView_East:113.3807,
+  //   // HomeView_North:23.1790
+  // }) 
   //
   function PullingHeight(){
     BMGIS_Pulling3DTileHeight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',100);
   }
   function ADD3DTile(){
-    BMGIS_Add3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',true) 
+    //BMGIS_Add3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',true) 
+    BMGIS_Add3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/BuildingNew/',false) 
   }
   function Remove3DTile()
   {
@@ -110,19 +133,19 @@
   }
   function Show3DTile()
   {
-    BMGIS_Visible3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',true);
+    BMGIS_Visible3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT_T_TIN/',true);
   }
   function Hide3DTile()
   {
-    BMGIS_Visible3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',false);
+    BMGIS_Visible3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT_T_TIN/',false);
   }
   function SetHomeView()
   {
-    BMGIS_SetHomeView(113.2002,23.0645,113.3807,23.1790,true);
+    BMGIS_SetHomeView(113.1002,23.0045,113.4807,23.2090,true);
   }
   function FlyToRectangle()
   {
-    BMGIS_FlyToRectangle(113.2002,23.0645,113.3807,23.1790);
+    BMGIS_FlyToRectangle(113.1002,23.0045,113.4807,23.2090);
   }
   function FlyToBoundlingSphere()
   {
@@ -134,15 +157,15 @@
   }
   function FlyTo3DTileNode()
   {
-    BMGIS_FlyTo3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2317130.540275,5394349.186563,2484174.871629,5.700195);
+    BMGIS_FlyTo3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2315563.737523,5391950.491999,2490736.024779,352.433105);
   }
   function FlyTo3DTileNodeAndHighlight()
   {
-    BMGIS_FlyTo3DTileNodeAddHighlight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2317075.93769,5394297.683074,2484297.512487,363.570313,['1d227775-d8b6-4ba2-97d9-e55afd359bd1']) 
+    BMGIS_FlyTo3DTileNodeAddHighlight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2315563.737523,5391950.491999,2490736.024779,352.433105,['d9a77948-23c0-406d-a834-407ceab0df21']) 
   }
   function FlyTo3DTileNodeAndHighlight1()
   {
-    BMGIS_FlyTo3DTileNodeAddHighlight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2317049.134477,5394260.563475,2484445.650364,45.577148,['927eeaa1-8b73-4f43-9438-0162e0ec8718']) 
+    BMGIS_FlyTo3DTileNodeAddHighlight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',-2316123.02258,5391643.36004,2490843.333591,950.570435,['40cf80f4-f9a4-452b-b9f5-df4b8b771b3f']) 
   }
   function UseOnlineGlobalTerrain()
   {
@@ -174,19 +197,19 @@
   }
   function Set3DTileNodeColor()
   {
-    BMGIS_Set3DTileNodeColor('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',1.0,1.0,0,1.0,['1d227775-d8b6-4ba2-97d9-e55afd359bd1']);
+    BMGIS_Set3DTileNodeColor('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',1.0,1.0,0,1.0,['d9a77948-23c0-406d-a834-407ceab0df21']);
   }
   function Reset3DTileNodeColor()
   {
-    BMGIS_Reset3DTileNodeColor('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['1d227775-d8b6-4ba2-97d9-e55afd359bd1']);
+    BMGIS_Reset3DTileNodeColor('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['d9a77948-23c0-406d-a834-407ceab0df21']);
   }
   function Show3DTileNode()
   {
-    BMGIS_Show3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['1d227775-d8b6-4ba2-97d9-e55afd359bd1']);
+    BMGIS_Show3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['d9a77948-23c0-406d-a834-407ceab0df21']);
   }
   function Hide3DTileNode()
   {
-    BMGIS_Hide3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['1d227775-d8b6-4ba2-97d9-e55afd359bd1']);
+    BMGIS_Hide3DTileNode('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['d9a77948-23c0-406d-a834-407ceab0df21']);
   }
   function SetHighlightColor()
   {
@@ -306,6 +329,14 @@
   {
     BMGIS_DeleteEntityLabel(imageLabelID);
   }
+  function ZoomToLabel()
+  {
+    BMGIS_ZoomToEntityLabel(imageLabelID);
+  }
+  function GlintLabel()
+  {
+    BMGIS_GlintEntityLabels([imageLabelID,textLabelID],20000);
+  }
   function DeleteAllLabel()
   {
     BMGIS_DeleteAllEntityLabel(2);
@@ -342,6 +373,26 @@
       divDom.parentNode.removeChild(divDom); 
       divDom = undefined; 
     }
+  }
+  function ShowGlobe()
+  {
+    BMGIS_ShowGlobe(true);
+  }
+  function HideGlobe()
+  {
+    BMGIS_ShowGlobe(false);
+  }
+  function SetGlobeMapLabelType(v)
+  {
+    BMGIS_SetGlobeMapLabelType(Number(v));
+  }
+  function SetGlobeMapType(v)
+  {
+    BMGIS_SetGlobeMapType(Number(v));
+  }
+  function SetOperateHanderType(v)
+  {
+    BMGIS_SetOperateHanderType(Number(v));
   }
   /////////////////////////////////////////////
   function TempMouseLeftClickSelectNodeListener(guidStr)
