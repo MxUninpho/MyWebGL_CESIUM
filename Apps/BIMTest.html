@@ -27,7 +27,6 @@
   <button onclick="Hide3DTile()">隐藏3DTile</button>
   <button onclick="Show3DTile()">显示3DTile</button>
   <button onclick="Set3DTileNodeColor()">设置3DTile节点颜色</button>
-  <button onclick="Reset3DTileNodeColor()">重置3DTile节点颜色</button>
   <button onclick="Show3DTileNode()">显示3DTile节点</button>
   <button onclick="Hide3DTileNode()">隐藏3DTile节点</button>
   <button onclick = "SetScreenSpaceErrorr()">设置3DTile屏幕误差</button>
@@ -109,7 +108,7 @@
   //     }) ;
   BMGIS_Init('cesiumContainer',{
       //BIMMode3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',
-      BIMMode3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/BMTEST0/',
+      BIMMode3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',
       Terrain3DTileURL:'../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT_T_TIN/'
       }) ;
   // BMGIS_Init('cesiumContainer',{
@@ -121,15 +120,15 @@
   // }) 
   //
   function PullingHeight(){
-    BMGIS_Pulling3DTileHeight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',100);
+    BMGIS_Pulling3DTileHeight('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',50);
   }
   function ADD3DTile(){
     //BMGIS_Add3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',true) 
-    BMGIS_Add3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/BuildingNew/',false) 
+    BMGIS_Add3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/BuildingNoTexture/',false) 
   }
   function Remove3DTile()
   {
-    BMGIS_Remove3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/');
+    BMGIS_Remove3DTile('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/BuildingNoTexture/');
   }
   function Show3DTile()
   {
@@ -335,7 +334,7 @@
   }
   function GlintLabel()
   {
-    BMGIS_GlintEntityLabels([imageLabelID,textLabelID],20000);
+    BMGIS_GlintEntityLabels([imageLabelID,textLabelID],5000);
   }
   function DeleteAllLabel()
   {

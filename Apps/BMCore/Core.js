@@ -50,9 +50,24 @@ var BMGolbe = {};
 //谷歌影像地图---不带注记
 BMGolbe.GoogleImageProvider = createGoogleMapsByUrl(Cesium,{url:"http://mt1.google.cn/vt/lyrs=s&hl=zh-CN&x={x}&y={y}&z={z}"});
 //Mapbox矢量地图---带注记---默认
-BMGolbe.MapboxMapProvider = new Cesium.MapboxImageryProvider({
-    mapId: 'mapbox.streets'
+//mapId: 'mapbox.dark',mapId: 'mapbox.streets',
+//https://api.mapbox.com/styles/v1/jiaguobing/cjlx60tqy1wrt2srh9dexox17.html?fresh=true&title=true&access_token=pk.eyJ1IjoiamlhZ3VvYmluZyIsImEiOiJjamxxYmFicDYwOXE2M3BrYm4zZXA1b2FuIn0.bE2E_TQd3KujSZEIDWYf8Q#14.0/42.363484/-71.052069/0
+// BMGolbe.MapboxMapProvider = new Cesium.MapboxImageryProvider({
+//     mapId: 'mapbox.streets',
+//     accessToken:"pk.eyJ1IjoiamlhZ3VvYmluZyIsImEiOiJjamxxZHQ4bjkyZjBuM3d0NTdpaDkxdmpnIn0.8dVu8vbBi3X7hxZ9DG2D1A"
+// });
+
+//mapbox://styles/jiaguobing/cjlxcv1mp4g6r2spowteh3pwz
+var MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiamlhZ3VvYmluZyIsImEiOiJjamxxYmFicDYwOXE2M3BrYm4zZXA1b2FuIn0.bE2E_TQd3KujSZEIDWYf8Q'; 
+var MAPBOX_STYLE_ID = 'cjlxcv1mp4g6r2spowteh3pwz'; 
+var MAPBOX_USERNAME = 'jiaguobing';
+
+var url555 = 'https://api.mapbox.com/styles/v1/' + MAPBOX_USERNAME + '/' + MAPBOX_STYLE_ID + '/tiles/256/{z}/{x}/{y}?access_token=' + MAPBOX_ACCESS_TOKEN;
+BMGolbe.MapboxMapProvider = new Cesium.UrlTemplateImageryProvider({
+  url : url555,
+  maximumLevel: 18
 });
+//
 //天地图矢量地图---不带注记
 BMGolbe.TianDiTuMapProvider = new Cesium.WebMapTileServiceImageryProvider({
     url : 'http://{s}.tianditu.com/vec_w/wmts?service=WMTS&version=1.0.0&request=GetTile&tilematrix={TileMatrix}&layer=vec&style=default&tilerow={TileRow}&tilecol={TileCol}&tilematrixset={TileMatrixSet}&format=tiles',
@@ -100,10 +115,10 @@ BMGolbe.FlyRectangle = new Cesium.Rectangle();
 //FlyBoundingSphere 包围球
 BMGolbe.FlyBoundingSphere = new Cesium.BoundingSphere();
 //在线全球高程数据
-BMGolbe.GlobalTerrain = Cesium.createWorldTerrain({
-    requestWaterMask: true,
-    requestVertexNormals: true
-});
+// BMGolbe.GlobalTerrain = Cesium.createWorldTerrain({
+//     requestWaterMask: true,
+//     requestVertexNormals: true
+// });
 //简单椭球高程
 BMGolbe.SimpleEllipsoidTerrain = new Cesium.EllipsoidTerrainProvider();
 //场景选中3DTileSet node 事件
@@ -155,6 +170,24 @@ BMGolbe.scratchCartesianPt = new Cesium.Cartesian3(0, 0,0);
 BMGolbe.scratchCartesian2Pt = new Cesium.Cartesian2();
 BMGolbe.scratchCartographicPt = new Cesium.Cartographic(0, 0,0);
 //
+var style0 = new Cesium.Cesium3DTileStyle({
+    color : "color('#E8F1F2', 0.5)"
+    }
+);
+var style1 = new Cesium.Cesium3DTileStyle({
+    color: {
+        conditions : [
+            ["(${height} >= 1.0)  && (${height} < 10.0)", "color('#669999',0.7)"],
+            ["(${height} >= 10.0) && (${height} < 30.0)", "color('#669999',0.6)"],
+            ["(${height} >= 30.0) && (${height} < 50.0)", "color('#669999',0.5)"],
+            ["(${height} >= 50.0) && (${height} < 70.0)", "color('#669999',0.4)"],
+            ["(${height} >= 70.0) && (${height} < 100.0)", "color('#339999',0.3)"],
+            ["(${height} >= 100.0)", "color('#339999',0.2)"]
+        ]
+    }
+    }
+);
+//
 function createModel(url, height) {
     //viewer.entities.removeAll();
     var position = Cesium.Cartesian3.fromDegrees(104.05898094177246, 30.435991287231445, 453.517914);
@@ -185,6 +218,7 @@ function createModel(url, height) {
 * @param {Number} [options.HomeView_East = 128.056] HOME视图范围 默认中国境内 
 * @param {Number} [options.HomeView_North = 49.746] HOME视图范围 默认中国境内 
 */
+//mapbox://styles/jiaguobing/cjlxdrmz94d4a2rp4bnf0bfhj
 function BMInit(container,options)
 {
     BMGolbe.viewer = new Cesium.Viewer(container, {
@@ -197,7 +231,8 @@ function BMInit(container,options)
         homeButton:false,
         infoBox:false,
         sceneModePicker:false,
-        geocoder:false
+        geocoder:false,
+        imageryProvider:BMGolbe.MapboxMapProvider
     });
     //
     BMGolbe.HomeViewRectangle = Cesium.Rectangle.fromDegrees(options.HomeView_West, options.HomeView_South, options.HomeView_East, options.HomeView_North);
@@ -207,12 +242,13 @@ function BMInit(container,options)
         destination : BMGolbe.HomeViewRectangle
     });
     //BMGolbe.viewer.scene.sun.show = false;
-    
+    BMGolbe.viewer.scene.skyBox.show = false;
+    BMGolbe.viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#00163d");
     //
     var imageryLayers = BMGolbe.viewer.imageryLayers;
     BMGolbe.viewer.scene.globe.depthTestAgainstTerrain = false;
-   
-    BMGolbe.ImageLayer = imageryLayers.addImageryProvider(BMGolbe.MapboxMapProvider,1);
+    //imageryLayers.addImageryProvider(customImageryProvider);
+    BMGolbe.ImageLayer = imageryLayers.get(0);
     //
     BMGolbe.viewer.scene.camera._suspendTerrainAdjustment = false;
     BMGolbe.viewer.cesiumWidget.creditContainer.style.display= "none";
@@ -244,6 +280,8 @@ function BMInit(container,options)
          BMGolbe.BMTileSets.push(tilesetT);
          Set3DTileSetSelectVariables(tilesetT);
          BMGolbe.viewer.zoomTo(tilesetT);
+         //
+       //  tilesetT.style = style0;
     }
     if(options.UseOnLineGlobalTerrain)
     {
@@ -256,19 +294,20 @@ function BMInit(container,options)
     }
     //
     var rootDOM = document.getElementById(container);
-    var lonEle = document.createElement('div');
-    lonEle.innerHTML = '经度：<span id="longitude_show"></span>';
-    lonEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:25%;bottom:0.5%;position:absolute;z-index:2"; 
-    var latEle = document.createElement('div');
-    latEle.innerHTML = '纬度：<span id="latitude_show"></span>';
-    latEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:40%;bottom:0.5%;position:absolute;z-index:2"; 
-    var altEle = document.createElement('div');
-    altEle.innerHTML = '视角高：<span id="altitude_show"></span>';
-    altEle.style.cssText = "color:Yellow;width:240px;height:30px;float:left;left:55%;bottom:0.5%;position:absolute;z-index:2"; 
-    rootDOM.appendChild(lonEle);
-    rootDOM.appendChild(latEle);
-    rootDOM.appendChild(altEle);
+    // var lonEle = document.createElement('div');
+    // lonEle.innerHTML = '经度：<span id="longitude_show"></span>';
+    // lonEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:25%;bottom:0.5%;position:absolute;z-index:2"; 
+    // var latEle = document.createElement('div');
+    // latEle.innerHTML = '纬度：<span id="latitude_show"></span>';
+    // latEle.style.cssText = "color:Yellow;width:200px;height:30px;float:left;left:40%;bottom:0.5%;position:absolute;z-index:2"; 
+    // var altEle = document.createElement('div');
+    // altEle.innerHTML = '视角高：<span id="altitude_show"></span>';
+    // altEle.style.cssText = "color:Yellow;width:240px;height:30px;float:left;left:55%;bottom:0.5%;position:absolute;z-index:2"; 
+    // rootDOM.appendChild(lonEle);
+    // rootDOM.appendChild(latEle);
+    // rootDOM.appendChild(altEle);
     BMGolbe.BMGISRootDOM =rootDOM; 
+   
     //
     var longitude_show=document.getElementById('longitude_show');
     var latitude_show=document.getElementById('latitude_show');
@@ -277,17 +316,17 @@ function BMInit(container,options)
     var ellipsoid=BMGolbe.viewer.scene.globe.ellipsoid;
     //鼠标移动显示 鼠标位置与相机高度
     BMGolbe.viewer.screenSpaceEventHandler.setInputAction(function(movement){
-        var cartesian=BMGolbe.viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid,BMGolbe.scratchCartesianPt);
-        if(cartesian)
-        {   
-            var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-            var lat_String=Cesium.Math.toDegrees(cartographic.latitude).toFixed(5);
-            var log_String=Cesium.Math.toDegrees(cartographic.longitude).toFixed(5);
-            var alti_String=(BMGolbe.viewer.camera.positionCartographic.height/1000).toFixed(3);
-            longitude_show.innerHTML=log_String + '\u00B0';
-            latitude_show.innerHTML=lat_String + '\u00B0';
-            altitude_show.innerHTML=alti_String + 'km';
-        }
+        // var cartesian=BMGolbe.viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid,BMGolbe.scratchCartesianPt);
+        // if(cartesian)
+        // {   
+        //     var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+        //     var lat_String=Cesium.Math.toDegrees(cartographic.latitude).toFixed(5);
+        //     var log_String=Cesium.Math.toDegrees(cartographic.longitude).toFixed(5);
+        //     var alti_String=(BMGolbe.viewer.camera.positionCartographic.height/1000).toFixed(3);
+        //     longitude_show.innerHTML=log_String + '\u00B0';
+        //     latitude_show.innerHTML=lat_String + '\u00B0';
+        //     altitude_show.innerHTML=alti_String + 'km';
+        // }
     },Cesium.ScreenSpaceEventType.MOUSE_MOVE);
     BMGolbe.viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
     BMGolbe.viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -321,50 +360,64 @@ function BMInit(container,options)
     var selectHandler = new Cesium.ScreenSpaceEventHandler(canvas);
     BMGolbe.SelectHander = selectHandler;
     selectHandler.setInputAction(function onLeftClick(movement) {
-        if(BMGolbe.HanderType == 0)
-        {
-            var pickedFeature = BMGolbe.viewer.scene.pick(movement.position);
-            if (!Cesium.defined(pickedFeature)) 
-            {
-                UnSelectAll3DTileSetSelectNodes();
-                return;
-            }
-            //
-            if (pickedFeature instanceof Cesium.Cesium3DTileFeature) 
-            {
-                if(pickedFeature.tileset.asset.id === "terrain")
-                {
-                    UnSelectAll3DTileSetSelectNodes();
-                    return;
-                }
-                if(BMGolbe.SelectTileFeature !== pickedFeature)
-                {
-                    UnSelectAll3DTileSetSelectNodes();
-                    //
-                    BMGolbe.SelectTileFeature = pickedFeature;
-                    pickedFeature.color =  BMGolbe.SelectColor;
-                    //此处不能将 选中的Feature的Tile添加至TileSet的SelectedTiles数组中
-                    var tile = pickedFeature.content.tile;
-                    if(!Cesium.defined(tile.SelectedFeatures)) tile.SelectedFeatures = [];
-                    tile.SelectedFeatures.push(pickedFeature);
-                    //
-                    var guid = pickedFeature.getProperty('name'); 
-                    var url = tile.tileset.originURL;
-                    BMGolbe.Select3DTileNodeEvent.raiseEvent(url + ':'+guid);
-                }
-            }
-            else if(pickedFeature.id instanceof Cesium.Entity)
-            {
-                var index = GetArrayElementIndex(BMGolbe.TextLabelEntites,pickedFeature.id);
-                if(index !== -1)
-                    BMGolbe.ClickTextLabelEvent.raiseEvent(pickedFeature.id.id);
-                else
-                {
-                    index = GetArrayElementIndex(BMGolbe.ImageLabelEntites,pickedFeature.id);
-                    if(index !== -1)
-                        BMGolbe.ClickImageLabelEvent.raiseEvent(pickedFeature.id.id);
-                }
-            }
+        // if(BMGolbe.HanderType == 0)
+        // {
+        //     var pickedFeature = BMGolbe.viewer.scene.pick(movement.position);
+        //     if (!Cesium.defined(pickedFeature)) 
+        //     {
+        //         UnSelectAll3DTileSetSelectNodes();
+        //         return;
+        //     }
+        //     //
+        //     if (pickedFeature instanceof Cesium.Cesium3DTileFeature) 
+        //     {
+        //         if(pickedFeature.tileset.asset.id === "terrain")
+        //         {
+        //             UnSelectAll3DTileSetSelectNodes();
+        //             return;
+        //         }
+        //         if(BMGolbe.SelectTileFeature !== pickedFeature)
+        //         {
+        //             UnSelectAll3DTileSetSelectNodes();
+        //             //
+        //             BMGolbe.SelectTileFeature = pickedFeature;
+        //             if(!Cesium.defined(pickedFeature.hadSetOriginColor))
+        //             {
+        //                 pickedFeature.originColor = pickedFeature.color;
+        //                 pickedFeature.hadSetOriginColor = true;
+        //             }
+        //             pickedFeature.color =  BMGolbe.SelectColor;
+        //             //此处不能将 选中的Feature的Tile添加至TileSet的SelectedTiles数组中
+        //             var tile = pickedFeature.content.tile;
+        //             if(!Cesium.defined(tile.SelectedFeatures)) tile.SelectedFeatures = [];
+        //             tile.SelectedFeatures.push(pickedFeature);
+        //             //
+        //             var guid = pickedFeature.getProperty('name'); 
+        //             var url = tile.tileset.originURL;
+        //             BMGolbe.Select3DTileNodeEvent.raiseEvent(url + ':'+guid);
+        //         }
+        //     }
+        //     else if(pickedFeature.id instanceof Cesium.Entity)
+        //     {
+        //         var index = GetArrayElementIndex(BMGolbe.TextLabelEntites,pickedFeature.id);
+        //         if(index !== -1)
+        //             BMGolbe.ClickTextLabelEvent.raiseEvent(pickedFeature.id.id);
+        //         else
+        //         {
+        //             index = GetArrayElementIndex(BMGolbe.ImageLabelEntites,pickedFeature.id);
+        //             if(index !== -1)
+        //                 BMGolbe.ClickImageLabelEvent.raiseEvent(pickedFeature.id.id);
+        //         }
+        //     }
+        // }
+        var cartesian = BMGolbe.viewer.scene.pickPosition(movement.position,BMGolbe.scratchCartesianPt);
+        if(cartesian)
+        {   
+            var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            var lat_String=Cesium.Math.toDegrees(cartographic.latitude).toFixed(9);
+            var log_String=Cesium.Math.toDegrees(cartographic.longitude).toFixed(9);
+
+            console.log("%s,%s,%f",log_String,lat_String,cartographic.height);
         }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
     //
@@ -479,8 +532,12 @@ function BMInit(container,options)
     InitMeasurePointCoordinateHander();
     InitMeasureMultiLineLengthHander();
     InitMeasureAreaHander();
+    InitMeasureThreeDistanceHander();
     //
     BMSetOperateHanderType(0);
+    //
+    PrivateForGuanZhou();
+
 }
 /** 调整3DTile 高度
  * @Fuction
@@ -550,6 +607,7 @@ function BMAdd3DTile(tileURL,NeedZoomTo) {
     //
     Set3DTileSetSelectVariables(tileset);
     Set3DTileSetTileVisibleAndTileUnloadEvent(tileset);
+    tileset.style = style1;
 }
 /** 移除3DTile
  * @Fuction
@@ -727,6 +785,8 @@ function BMFlyTo3DTileNodeAddHighlight(tileURL,tileNode_centerX,tileNode_centerY
 function BMUseGlobalTerrain(UseOnLineGlobalTerrain) {
 
     if(UseOnLineGlobalTerrain){
+        alert("暂不可用！");
+        return;
         BMGolbe.viewer.terrainProvider = BMGolbe.GlobalTerrain;
         BMGolbe.viewer.scene.globe.enableLighting = true;
     }else{
@@ -790,21 +850,6 @@ function BMSet3DTileNodeColor(tileURL,colorR,colorG,colorB,colorA,tileNode_GUIDs
     }
     //
     findTile.NeedSetColorObjects.push(newObj);
-}
-/** 重置3DTile节点颜色
- * @Fuction
- * @param {String} tileURL 3Dtile URL   
- * @param {String[]} tileNode_GUIDs 节点GUID 数据库中获取---数组--- 
- */
-function BMReset3DTileNodeColor(tileURL,tileNode_GUIDs)
-{
-    var findTile = Get3DTileSetByURL(tileURL);
-    if(!Cesium.defined(findTile))
-        return;
-    for(var i=0;i<tileNode_GUIDs.length;++i)
-    {
-        findTile.NeedResetColorFeatureIDs.push(tileNode_GUIDs[i]);
-    }
 }
 /** 显示3DTile节点
  * @Fuction
@@ -1383,11 +1428,11 @@ function BMSetGlobeMapType(mapType)
     BMGolbe.viewer.imageryLayers.remove(BMGolbe.ImageLayer);
     //
     if(mapType === 0)
-        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.GoogleImageProvider,1);
+        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.GoogleImageProvider,0);
     else if(mapType === 1)
-        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.MapboxMapProvider,1);
+        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.MapboxMapProvider,0);
     else
-        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.TianDiTuMapProvider,1);
+        BMGolbe.ImageLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.TianDiTuMapProvider,0);
 }
 /** 设置地图注记类型---默认为 空
  * @Fuction
@@ -1402,9 +1447,9 @@ function BMSetGlobeMapLabelType(labelType)
     }
     //
     if(labelType === 0)
-        BMGolbe.LabelLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.MapLabelTianDiTuProvider,2);
+        BMGolbe.LabelLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.MapLabelTianDiTuProvider,1);
     else if(labelType === 1)
-        BMGolbe.LabelLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.ImageLabelTianDiTuProvider,2);
+        BMGolbe.LabelLayer = BMGolbe.viewer.imageryLayers.addImageryProvider(BMGolbe.ImageLabelTianDiTuProvider,1);
 }
 /** 修改图层样式
  * @Fuction
@@ -1458,10 +1503,12 @@ function BMSetOperateHanderType(handerType)
         if(handerType == 0)
         {
             BMGolbe.CanvasContainerElement.style.cursor="auto";
+            BMGolbe.viewer.scene.pickTranslucentDepth = false;
         }
         else
         {
             BMGolbe.CanvasContainerElement.style.cursor="crosshair";
+           // BMGolbe.viewer.scene.pickTranslucentDepth = true;
         }
     }
 }
@@ -1511,8 +1558,6 @@ function Set3DTileSetSelectVariables(tileSet)
     tileSet.NeedRemoveSelectTiles = [];
     //需要 设置颜色的GUID+Color数组
     tileSet.NeedSetColorObjects = [];
-    //需要 重置颜色的GUID数组
-    tileSet.NeedResetColorFeatureIDs = [];
     //需要 显示的GUID数组
     tileSet.NeedShowFeatureIDs = [];
     //需要 隐藏的GUID数组
@@ -1596,7 +1641,7 @@ function Set3DTileSetTileVisibleAndTileUnloadEvent(tileSet)
                         if(Cesium.defined(tempFeature.originColor))
                             tempFeature.color = tempFeature.originColor;
                         else
-                            tempFeature.color = Cesium.Color.WHITE;
+                            tempFeature.color = undefined;
                         //
                         if(Cesium.defined(BMGolbe.SelectTileFeature) && BMGolbe.SelectTileFeature === tempFeature)     
                             BMGolbe.SelectTileFeature = undefined; 
@@ -1621,6 +1666,11 @@ function Set3DTileSetTileVisibleAndTileUnloadEvent(tileSet)
                     {
                         tile.SelectedFeatures.push(feature);
                         _tileSet.SelectedTiles.push(tile);
+                        if(!Cesium.defined(feature.hadSetOriginColor))
+                        {
+                            feature.originColor = feature.color;
+                            feature.hadSetOriginColor = true;
+                        }
                         feature.color =  BMGolbe.SelectColor; 
                         //
                         _tileSet.NeedAddToSelectFeatureIDs.splice(j,1);
@@ -1649,6 +1699,7 @@ function Set3DTileSetTileVisibleAndTileUnloadEvent(tileSet)
                             find = true;
                             feature.color =  tempObj.color; 
                             feature.originColor = tempObj.color;
+                            feature.hadSetOriginColor = true;
                             tempGUIDS.splice(k,1);
                             if(tempGUIDS.length === 0)
                             {
@@ -1659,26 +1710,6 @@ function Set3DTileSetTileVisibleAndTileUnloadEvent(tileSet)
                     }
                     //
                     if(find) break; 
-                }
-            }
-        }
-        //重置 颜色
-        if(_tileSet.NeedResetColorFeatureIDs.length > 0)
-        {
-            content = tile.content;
-            for (i = 0; i < content.featuresLength; i++)
-            {
-                feature = content.getFeature(i);
-                guid0 = feature.getProperty('name'); 
-                for(j=0;j<_tileSet.NeedResetColorFeatureIDs.length;++j)
-                {
-                    if(guid0 === _tileSet.NeedResetColorFeatureIDs[j])
-                    {
-                        feature.color = Cesium.Color.WHITE;
-                        feature.originColor = undefined;
-                        _tileSet.NeedResetColorFeatureIDs.splice(j,1);
-                        break;
-                    }
                 }
             }
         }
@@ -1792,7 +1823,6 @@ function GetCartesian3ByMousePoint(mousePoint,scratchCartesianPt)
          return undefined;
     }
 }
-
 /*重置 测量数据
 */
 function ResetMeasureData()
@@ -1815,7 +1845,6 @@ function ResetMeasureData()
 /*初始化 坐标测量hander
 */
 BMGolbe.MeasureUseColor = Cesium.Color.MEDIUMPURPLE;
-BMGolbe.MeasureDistanceDisplayCondition = new Cesium.DistanceDisplayCondition(0.5 ,50000);
 BMGolbe.MeasureDisableDepthTestDistance = new Cesium.ConstantProperty(10000);
 BMGolbe.PointCoordinateEntity = undefined;
 function InitMeasurePointCoordinateHander()
@@ -1828,7 +1857,6 @@ function InitMeasurePointCoordinateHander()
              horizontalOrigin : Cesium.HorizontalOrigin.LEFT ,
              verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
              fillColor : BMGolbe.MeasureUseColor,
-             distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
              font:"20px sans-serif",
              pixelOffset:BMGolbe.LabelPixelOffset,
              disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
@@ -1837,9 +1865,7 @@ function InitMeasurePointCoordinateHander()
              color: Cesium.Color.SNOW ,
              outlineColor: Cesium.Color.CORAL,
              outlineWidth:1,
-             pixelSize:3,
-             distanceDisplayCondition: BMGolbe.MeasureDistanceDisplayCondition,
-             disableDepthTestDistance :BMGolbe.MeasureDisableDepthTestDistance
+             pixelSize:3
          }
      });
      BMGolbe.PointCoordinateEntity.show = false;
@@ -1850,8 +1876,6 @@ function InitMeasurePointCoordinateHander()
         {
             
             var scenePick = GetCartesian3ByMousePoint(movement.position,BMGolbe.scratchCartesianPt);
-           
-            
             if(scenePick)
             {
                  Cesium.Cartographic.fromCartesian(scenePick,BMGolbe.viewer.scene.globe.ellipsoid,BMGolbe.scratchCartographicPt);
@@ -1877,12 +1901,13 @@ function InitMeasurePointCoordinateHander()
 }
 /*初始化 多线长度测量hander
 */
-function AddEntityForMeasureMultiLineLength_Label_Polyline(labelTxt,polylinePoints)
+function AddEntityForMeasureMultiLineLength_Label_Polyline(labelTxt,polylinePoints,color)
 {
     BMGolbe.scratchCartesianPt.x =( polylinePoints[0].x +polylinePoints[1].x)/2.0; 
     BMGolbe.scratchCartesianPt.y =( polylinePoints[0].y +polylinePoints[1].y)/2.0;
     BMGolbe.scratchCartesianPt.z =( polylinePoints[0].z +polylinePoints[1].z)/2.0;
     //
+    var ecolor = Cesium.defaultValue(color,Cesium.Color.LIGHTGREEN);
     var newEntity;
     if(labelTxt === "")
     {
@@ -1890,8 +1915,8 @@ function AddEntityForMeasureMultiLineLength_Label_Polyline(labelTxt,polylinePoin
             polyline : {
                 positions : polylinePoints,
                 width : 2,
-                material : Cesium.Color.LIGHTGREEN,
-                depthFailMaterial:Cesium.Color.LIGHTGREEN
+                material : ecolor,
+                depthFailMaterial:ecolor
             }
         });
     }
@@ -1901,10 +1926,9 @@ function AddEntityForMeasureMultiLineLength_Label_Polyline(labelTxt,polylinePoin
             position : BMGolbe.scratchCartesianPt,
             label : {
                 text : labelTxt,
-                horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
+                horizontalOrigin : Cesium.HorizontalOrigin.LEFT,
                 verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
                 fillColor : BMGolbe.MeasureUseColor,
-                distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
                 font:"20px sans-serif",
                 pixelOffset:BMGolbe.LabelPixelOffset,
                 disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
@@ -1912,8 +1936,8 @@ function AddEntityForMeasureMultiLineLength_Label_Polyline(labelTxt,polylinePoin
             polyline : {
                 positions : polylinePoints,
                 width : 2,
-                material : Cesium.Color.LIGHTGREEN,
-                depthFailMaterial:Cesium.Color.LIGHTGREEN
+                material : ecolor,
+                depthFailMaterial:ecolor
             }
         });
     }
@@ -1928,9 +1952,7 @@ function AddEntityForMeasureMultiLineLength_Point(pointPos)
             color: Cesium.Color.SNOW ,
             outlineColor: Cesium.Color.CORAL,
             outlineWidth:1,
-            pixelSize:3,
-            distanceDisplayCondition: BMGolbe.MeasureDistanceDisplayCondition,
-            disableDepthTestDistance :BMGolbe.MeasureDisableDepthTestDistance
+            pixelSize:3
         }
     });
     //
@@ -1945,7 +1967,6 @@ function AddEntityForMeasureMultiLineLength_Label(pointPos,labelTxt)
             horizontalOrigin : Cesium.HorizontalOrigin.LEFT,
             verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
             fillColor : BMGolbe.MeasureUseColor,
-            distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
             font:"20px sans-serif",
             pixelOffset:BMGolbe.LabelPixelOffset,
             disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
@@ -1958,6 +1979,7 @@ BMGolbe.MeasureMultiLineEntities = [];
 BMGolbe.MeasureMultiLinePoints = [];
 BMGolbe.MeasureMultiLineMouseMoveEntity = undefined;
 BMGolbe.MeasureMultiLineMouseMovePolyLine = undefined;
+BMGolbe.MeasureMouseMoveScratchCartesianPt = new Cesium.Cartesian3();
 function InitMeasureMultiLineLengthHander()
 {
     var position = new Cesium.ConstantPositionProperty(new Cesium.Cartesian3());
@@ -1968,7 +1990,6 @@ function InitMeasureMultiLineLengthHander()
              horizontalOrigin : Cesium.HorizontalOrigin.LEFT ,
              verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
              fillColor : BMGolbe.MeasureUseColor,
-             distanceDisplayCondition : BMGolbe.MeasureDistanceDisplayCondition,
              font:"20px sans-serif",
              pixelOffset:BMGolbe.LabelPixelOffset,
              disableDepthTestDistance:BMGolbe.MeasureDisableDepthTestDistance
@@ -2035,7 +2056,7 @@ function InitMeasureMultiLineLengthHander()
     BMGolbe.MeasureMultiLineLengthHander.setInputAction(function(movement) {
         if(BMGolbe.MeasureMultiLinePoints.length > 0)
         {
-            var scenePick = GetCartesian3ByMousePoint(movement.endPosition, new Cesium.Cartesian3());
+            var scenePick = GetCartesian3ByMousePoint(movement.endPosition,BMGolbe.MeasureMouseMoveScratchCartesianPt);
             if(scenePick)
             {
                 var prePosition= BMGolbe.MeasureMultiLinePoints[BMGolbe.MeasureMultiLinePoints.length - 1];
@@ -2303,7 +2324,7 @@ function InitMeasureAreaHander()
     BMGolbe.MeasureAreaHander.setInputAction(function(movement) {
         if(BMGolbe.MeasureAreaPoints.length > 1)
         {
-            var scenePick = GetCartesian3ByMousePoint(movement.endPosition, new Cesium.Cartesian3());
+            var scenePick = GetCartesian3ByMousePoint(movement.endPosition, BMGolbe.MeasureMouseMoveScratchCartesianPt);
             if(scenePick)
             {
                 var lastPosition = BMGolbe.MeasureAreaPoints[BMGolbe.MeasureAreaPoints.length - 1];
@@ -2329,4 +2350,189 @@ function InitMeasureAreaHander()
         BMGolbe.MeasureAreaPolygonEntity.show = false;
      }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 }
-
+/*初始化 垂直距离hander
+*/
+BMGolbe.MeasureThreeDistanceEntities = [];
+BMGolbe.MeasureThreeDistancePoints = [];
+BMGolbe.MeasureThreeDistanceMouseMovePolyLine = undefined;
+function InitMeasureThreeDistanceHander()
+{
+    var polylines = new Cesium.PolylineCollection();
+    BMGolbe.MeasureThreeDistanceMouseMovePolyLine = polylines.add({
+        positions : Cesium.Cartesian3.fromDegreesArray([
+          -75.10, 39.57,
+          -77.02, 38.53]),
+        width : 2,
+        material :new Cesium.Material({
+            fabric : {
+                type : 'Color',
+                uniforms : {
+                    color : Cesium.Color.LIGHTGREEN
+                }
+            }
+        })
+      });
+    BMGolbe.MeasureThreeDistanceMouseMovePolyLine.show = false;
+    BMGolbe.viewer.scene.primitives.add(polylines);
+     //
+    BMGolbe.MeasureVerticalDistanceHander = new Cesium.ScreenSpaceEventHandler(BMGolbe.viewer.scene.canvas);
+    BMGolbe.MeasureVerticalDistanceHander.setInputAction(function(movement) {
+        if(BMGolbe.HanderType == 4)
+        {
+            BMGolbe.MeasureThreeDistanceMouseMovePolyLine.show = false;
+            if(BMGolbe.MeasureThreeDistancePoints.length == 0)
+            {
+                BMGolbe.MeasureThreeDistanceEntities.forEach(function(en){BMGolbe.viewer.entities.remove(en);});
+                BMGolbe.MeasureThreeDistanceEntities.splice(0,BMGolbe.MeasureThreeDistanceEntities.length);
+            }
+            //
+            var scenePick = GetCartesian3ByMousePoint(movement.position,new Cesium.Cartesian3());
+            if(scenePick)
+            {
+                BMGolbe.MeasureThreeDistancePoints.push(scenePick);
+                var pointEntity = AddEntityForMeasureMultiLineLength_Point(scenePick);
+                BMGolbe.MeasureThreeDistanceEntities.push(pointEntity);
+                //
+                if(BMGolbe.MeasureThreeDistancePoints.length == 2)
+                {
+                    var firstPt = BMGolbe.MeasureThreeDistancePoints[0];
+                    //斜距
+                    var len0 = Cesium.Cartesian3.distance(firstPt, scenePick);
+                    var labelTxt0 = "";
+                    if(len0 > 1001.0)
+                    {
+                        labelTxt0 = "斜距:" + (len0 / 1000.0).toFixed(3) + ' km';
+                    }
+                    else
+                    {
+                        labelTxt0 = "斜距:" +  len0.toFixed(2) + ' m';
+                    }
+                    Cesium.Cartographic.fromCartesian(firstPt,BMGolbe.viewer.scene.globe.ellipsoid,BMGolbe.scratchCartographicPt);
+                    var fisrtH = BMGolbe.scratchCartographicPt.height;
+                    Cesium.Cartographic.fromCartesian(scenePick,BMGolbe.viewer.scene.globe.ellipsoid,BMGolbe.scratchCartographicPt);
+                    BMGolbe.scratchCartographicPt.height = fisrtH;
+                    Cesium.Cartesian3.fromRadians( BMGolbe.scratchCartographicPt.longitude, BMGolbe.scratchCartographicPt.latitude, BMGolbe.scratchCartographicPt.height,BMGolbe.viewer.scene.globe.ellipsoid,BMGolbe.MeasureMouseMoveScratchCartesianPt);
+                    //水平
+                    var len1 = Cesium.Cartesian3.distance(firstPt, BMGolbe.MeasureMouseMoveScratchCartesianPt);
+                    var labelTxt1 = "";
+                    if(len1 > 1001.0)
+                    {
+                        labelTxt1 ="水平:" +  (len1 / 1000.0).toFixed(3) + ' km';
+                    }
+                    else
+                    {
+                        labelTxt1 ="水平:" +  len1.toFixed(2) + ' m';
+                    }
+                    //垂直
+                    var len2 = Cesium.Cartesian3.distance(scenePick, BMGolbe.MeasureMouseMoveScratchCartesianPt);
+                    var labelTxt2 = "";
+                    if(len2 > 1001.0)
+                    {
+                        labelTxt2 ="垂直:" +  (len2 / 1000.0).toFixed(3) + ' km';
+                    }
+                    else
+                    {
+                        labelTxt2 ="垂直:" +  len2.toFixed(2) + ' m';
+                    }
+                    //
+                    var labelTxt = labelTxt0 + '\n' + labelTxt1 + '\n' + labelTxt2;
+                    BMGolbe.MeasureThreeDistanceEntities.push(AddEntityForMeasureMultiLineLength_Label_Polyline(labelTxt,[firstPt,scenePick]));
+                    if(len2 > 0.1)
+                    {
+                        BMGolbe.MeasureThreeDistanceEntities.push(AddEntityForMeasureMultiLineLength_Label_Polyline("",[firstPt,BMGolbe.MeasureMouseMoveScratchCartesianPt],Cesium.Color.LIGHTBLUE.withAlpha(0.5)));
+                        BMGolbe.MeasureThreeDistanceEntities.push(AddEntityForMeasureMultiLineLength_Label_Polyline("",[scenePick,BMGolbe.MeasureMouseMoveScratchCartesianPt],Cesium.Color.LIGHTBLUE.withAlpha(0.5)));
+                        BMGolbe.MeasureThreeDistanceEntities.push(AddEntityForMeasureMultiLineLength_Point(BMGolbe.MeasureMouseMoveScratchCartesianPt));
+                    }
+                    //
+                    BMGolbe.MeasureThreeDistancePoints.splice(0,BMGolbe.MeasureThreeDistancePoints.length);
+                }
+            }
+        }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    //
+    BMGolbe.MeasureVerticalDistanceHander.setInputAction(function(movement) {
+        if(BMGolbe.MeasureThreeDistancePoints.length == 1)
+        {
+            var scenePick = GetCartesian3ByMousePoint(movement.endPosition, BMGolbe.MeasureMouseMoveScratchCartesianPt);
+            if(scenePick)
+            {
+                var prePosition= BMGolbe.MeasureThreeDistancePoints[0];
+                BMGolbe.MeasureThreeDistanceMouseMovePolyLine.positions = [prePosition,scenePick];
+            }
+            BMGolbe.MeasureThreeDistanceMouseMovePolyLine.show = true;
+        }
+     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+     //
+     BMGolbe.MeasureVerticalDistanceHander.setInputAction(function(movement) {
+        BMSetOperateHanderType(0);
+        BMGolbe.MeasureThreeDistanceEntities.forEach(function(en){BMGolbe.viewer.entities.remove(en);});
+        BMGolbe.MeasureThreeDistancePoints.splice(0,BMGolbe.MeasureThreeDistancePoints.length);
+        BMGolbe.MeasureThreeDistanceEntities.splice(0,BMGolbe.MeasureThreeDistanceEntities.length);
+        BMGolbe.MeasureThreeDistanceMouseMovePolyLine.show = false;
+     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+}
+function PrivateForGuanZhou()
+{
+    var i,index;
+    var polylinPoints = [113.3583484,23.0871419,113.3442648,23.0832799,113.3346140,23.0816496,113.3260667,23.0807788,113.3173357,23.0805320,113.3115773,23.0804319,113.3073619,23.0824567,113.3039665,23.0845220,113.2985535,23.0846629,113.2910918,23.0845979,113.2739212,23.0845894,113.2694558,23.0829649,113.2666166,23.0795364,113.2595299,23.0758583,113.2506923,23.0710143,113.2492660,23.0706093,113.2481453,23.0707750,113.2465285,23.0718459,113.2453201,23.0746999,113.2443512,23.0775356,113.2438786,23.0821259,113.2423400,23.0853877,113.2391696,23.0919587,113.2352945,23.0991158,113.2315275,23.1009344,113.2209699,23.1057435,113.2160565,23.1074164,113.2148234,23.1090678,113.2149223,23.1116499,113.2167014,23.1134167,113.2254118,23.1175437,113.2276538,23.1191729,113.2282430,23.1207414,113.2277891,23.1225030,113.2265957,23.1237481,113.2259099,23.1251928,113.2259310,23.1263361,113.2280150,23.1291854,113.2343742,23.1371277,113.2377358,23.1383469,113.2410391,23.1375584,113.2455651,23.1362129,113.2491334,23.1378270,113.2516974,23.1405151,113.2517613,23.1441571,113.2518079,23.1486474,113.2526857,23.1503327,113.2551842,23.1544552,113.2578300,23.1561722,113.2605561,23.1566739,113.2632977,23.1577975,113.2643675,23.1599798,113.2659696,23.1629022,113.2678830,23.1639494,113.2720835,23.1644401,113.2748332,23.1642945,113.2761857,23.1633589,113.2778715,23.1609100,113.2789001,23.1588665,113.2815019,23.1571496,113.2875758,23.1567128,113.2943334,23.1568007,113.2971230,23.1567982,113.2995989,23.1552123,113.3070904,23.1545810,113.3097623,23.1544587,113.3119231,23.1552517,113.3159901,23.1560301,113.3194320,23.1549877,113.3236247,23.1528925,113.3249421,23.1515601,113.3265785,23.1474125,113.3270377,23.1458390,113.3284890,23.1443302,113.3322300,23.1440123,113.3359475,23.1440640,113.3388065,23.1428412,113.3407277,23.1415779,113.3424279,23.1394157,113.3447333,23.1378973,113.3543227,23.1366605,113.3573885,23.1361128,113.3588867,23.1345925,113.3574257,23.1281087,113.3567290,23.1248813,113.3581428,23.1197503,113.3576473,23.1149055,113.3578664,23.1114207,113.3603430,23.1089105,113.3622766,23.1070063,113.3629360,23.1052269,113.3627616,23.1025268,113.3627224,23.0909776,113.3621244,23.0893343,113.3603413,23.0877347,113.3583484,23.0871419];
+    var length = polylinPoints.length;
+    var polyPoints = new Array(length / 2);
+    for (i = 0; i < length; i += 2) {
+        var longitude = polylinPoints[i];
+        var latitude = polylinPoints[i + 1];
+        index = i / 2;
+        polyPoints[index] = Cesium.Cartesian3.fromDegrees(longitude, latitude, 30, BMGolbe.viewer.scene.globe.ellipsoid, polyPoints[index]);
+    }
+    //
+    var polyMat = new Cesium.PolylineOutlineMaterialProperty({
+        color:Cesium.Color.WHITE,
+        outlineColor:Cesium.Color.BLACK,
+        outlineWidth:5
+    });
+    var ddc = new Cesium.DistanceDisplayCondition(2000 ,100000);  
+    var newEntity =  BMGolbe.viewer.entities.add({
+         polyline : {
+            positions : polyPoints,
+            followSurface : false,
+            width :15,
+            material : polyMat,
+            distanceDisplayCondition : ddc
+            
+         }
+     });
+     ///////////////////////////////////////////////////////
+     var textPoints = [113.3583484,23.0871419,113.3346140,23.0816496,113.3173357,23.0805320,113.3073619,23.0824567,113.2985535,23.0846629,113.2910918,23.0845979,113.2739212,23.0845894,113.2666166,23.0795364,113.2595299,23.0758583,113.2453201,23.0746999,113.2423400,23.0853877,113.2391696,23.0919587,113.2315275,23.1009344,113.2209699,23.1057435,113.2254118,23.1175437,113.2280150,23.1291854,113.2410391,23.1375584,113.2517613,23.1441571,113.2526857,23.1503327,113.2578300,23.1561722,113.2643675,23.1599798,113.2720835,23.1644401,113.2875758,23.1567128,113.2943334,23.1568007,113.3070904,23.1545810,113.3194320,23.1549877,113.3322300,23.1440123,113.3388065,23.1428412,113.3543227,23.1366605,113.3574257,23.1281087,113.3576473,23.1149055,113.3627616,23.1025268];
+     var length0 = textPoints.length;
+     var etxtPoints = new Array(length0 / 2);
+    for (i = 0; i < length0; i += 2) {
+        index = i / 2;
+        etxtPoints[index] = Cesium.Cartesian3.fromDegrees(textPoints[i], textPoints[i + 1], 40, BMGolbe.viewer.scene.globe.ellipsoid, etxtPoints[index]);
+    }
+    var txts = ["赤沙滘站","石榴岗站","大塘站","上涌公园站","逸景路站","五凤站","江泰路站","燕岗站","南石路站","鹤洞东站","东沙涌站","芳村大道东站","芳村站","石围塘站","如意坊站","中山八站","彩虹桥站","流花路站","广州火车站","梓元岗站","广园新村站","大金钟站","云台花园站","田心村站","沙河站","广州东站","天河东站","华师站","华景路站","天河公园站","员村站","琶洲站"];
+    var laooo = new Cesium.Cartesian2(0,-15);
+    var ddc0 = new Cesium.DistanceDisplayCondition(5000 ,50000);  
+    for(i=0;i<txts.length;++i)
+    {
+        BMGolbe.viewer.entities.add({
+            position : etxtPoints[i],
+            label : {
+                text : txts[i],
+                horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
+                verticalOrigin : Cesium.VerticalOrigin.BOTTOM,
+                fillColor : new Cesium.Color(1.0,0.5,0.5,1.0),
+                distanceDisplayCondition : ddc0,
+                font:'20px sans-serif',
+                pixelOffset:laooo,
+                style:Cesium.LabelStyle.FILL_AND_OUTLINE,
+                showBackground:true
+            },
+            point:{
+                color: Cesium.Color.SNOW ,
+                outlineColor: Cesium.Color.CORAL,
+                outlineWidth:5,
+                pixelSize:15,
+                distanceDisplayCondition: ddc0
+            }
+        });
+    }
+}

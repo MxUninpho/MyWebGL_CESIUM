@@ -318,24 +318,6 @@ function BMGIS_Set3DTileNodeColor(tileURL,colorR,colorG,colorB,colorA,tileNode_G
     BMSet3DTileNodeColor(tileURL,colorR,colorG,colorB,colorA,tileNode_GUIDs);
 }
 //
-/** 重置3DTileSet节点颜色
- * @Fuction
- * @param {String} tileURL 3Dtile URL   
- * @param {String[]} tileNode_GUIDs 节点GUID 数据库中获取---数组--- 
- * @example
- * 
- * BMGIS_Reset3DTileNodeColor('../Specs/Data/Cesium3DTiles/Batched/B3DMTEST/GZDT/',['1d227775-d8b6-4ba2-97d9-e55afd359bd1']) 
- */
-function BMGIS_Reset3DTileNodeColor(tileURL,tileNode_GUIDs)
-{
-    tileURL = Cesium.defaultValue(tileURL, "");
-    if(tileURL === "") return;
-    tileNode_GUIDs = Cesium.defaultValue(tileNode_GUIDs, []);
-    if(tileNode_GUIDs.length === 0) return;
-    //
-    BMReset3DTileNodeColor(tileURL,tileNode_GUIDs);
-}
-//
 /** 显示3DTileSet节点
  * @Fuction
  * @param {String} tileURL 3Dtile URL   
@@ -865,9 +847,9 @@ function BMGIS_EditGlobeMapStyle(mapType,options)
     BMEditGlobeMapStyle(mapType,options);
 }
 /** 设置操作类型 鼠标左键 双击返回默认操作（选择操作） 右键单击 重新测量
- *  注意：测量时最好开启地下深度测试（BMGIS_DepthTestAgainstTerrain(ture)）,否则当使用在线全球地形时 测量地球表面（非模型覆盖区域）值高度错误
+ *  注意：测量时最好开启地下深度测试（BMGIS_DepthTestAgainstTerrain(ture)）,否则当使用在线全球地形时 测量地球表面（非模型覆盖区域）有偏差
  * @Fuction
- * @param {Number} handerType 0选择(默认) 1坐标测量 2多线距离测量 3面积测量 4垂直距离测量
+ * @param {Number} handerType 0选择(默认) 1坐标测量 2多线距离测量 3面积测量 4垂直/水平/斜距测量
  * @example
  * 
  * BMGIS_SetOperateHanderType(1)
